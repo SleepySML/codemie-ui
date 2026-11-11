@@ -17,6 +17,16 @@ specific to this repository.
 | You need the gate commands themselves | [`../quality-gates.md`](../quality-gates.md) |
 | You need branch, commit, or MR mechanics | [`../standards/git-workflow.md`](../standards/git-workflow.md) |
 
+## Overview
+
+Security remediation in this repository touches three surfaces: npm dependencies (`package.json` and its lock file, `overrides` for transitive pins), the container images built from the Dockerfiles, and secrets scanned by gitleaks through `scripts/validate-secrets.mjs`.
+
+| Part | What it holds | Start here |
+|---|---|---|
+| `package.json` | direct dependencies and `overrides` pins | `package.json::overrides` |
+| `Dockerfile` | runtime nginx image | `Dockerfile::FROM` |
+| `scripts/validate-secrets.mjs` | gitleaks run in a container | `scripts/validate-secrets.mjs::GITLEAKS_IMAGE` |
+
 ## Discovery commands
 
 Versions, tags, package sets and counts are not written into these guides. Run the command.
@@ -143,3 +153,34 @@ points:
   about what is already committed.
 - `.gitleaks.toml` carries a path allowlist. Adding a path suppresses scanning for everyone; it
   needs a reason in the commit message.
+
+## Examples
+
+### Secrets scan engine detection
+
+Source: `scripts/validate-secrets.mjs::detectEngine`
+
+```js
+function detectEngine() {
+  for (const engine of ['docker', 'podman']) {
+    if (commandExists(engine) && daemonRunning(engine)) return engine
+  }
+  if (appleContainersRunning()) return 'container'
+  for (const engine of ['docker', 'podman']) {
+    if (commandExists(engine)) return engine
+  }
+  return null
+}
+```
+
+## Common pitfalls
+
+| Symptom | Cause | Fix | Evidence |
+|---|---|---|---|
+| The secrets step prints 'Secrets detected!' though nothing leaked | the script prints it for any non-zero gitleaks exit, an image pull failure included | read the output above it | `scripts/validate-secrets.mjs::GITLEAKS_IMAGE` |
+
+## Quick reference
+
+| Task | Do | Where |
+|---|---|---|
+| Run the secrets scan | `npm run secrets:check` | `package.json::secrets` |

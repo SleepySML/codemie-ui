@@ -3,6 +3,16 @@
 Routes only. Find the row that matches the task and open that one file. `AGENTS.md` at the
 repository root is the entry point above this.
 
+## Overview
+
+The guide index routes a task to one guide. The code those guides describe starts at `src/main.tsx` (bootstrap), `src/router.tsx` (routes), `src/store/` (state) and `src/utils/api.ts` (backend calls).
+
+| Part | What it holds | Start here |
+|---|---|---|
+| `src/main.tsx` | bootstrap | `src/main.tsx::AnnouncerHostProvider` |
+| `src/router.tsx` | route tree | `src/router.tsx::routes` |
+| `src/utils/api.ts` | API client | `src/utils/api.ts::API` |
+
 ## Gates, tickets and MRs
 
 | Condition | Read |
@@ -62,3 +72,28 @@ One entry point; it routes onward.
 | Condition | Read |
 |---|---|
 | Authoring an in-product onboarding flow | [`onboarding/flow-creation-guide.md`](onboarding/flow-creation-guide.md) |
+
+## Examples
+
+### Router instance accessor
+
+Source: `src/routerInstance.ts::getRouter`
+
+```ts
+export const getRouter = (): AppRouter => {
+  if (!instance) throw new Error('Router is not created yet: import @/router before using it')
+  return instance
+}
+```
+
+## Common pitfalls
+
+| Symptom | Cause | Fix | Evidence |
+|---|---|---|---|
+| An agent searches the whole tree for a convention | it skipped the index | open the guide the index names for the task | `src/router.tsx::routes` |
+
+## Quick reference
+
+| Task | Do | Where |
+|---|---|---|
+| Run the app locally | follow the quick start | `README.md` § Quick Start |

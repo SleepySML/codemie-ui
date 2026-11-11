@@ -4,6 +4,17 @@
 
 ---
 
+## Overview
+
+Request failures are toasted by `api` from the error body unless the caller opts out; stores add their own message where needed and rethrow when the component must react. Render errors under the root route reach `ErrorPage`; A2UI blocks have their own boundary.
+
+| Part | What it holds | Start here |
+|---|---|---|
+| `src/utils/toaster.ts` | toast API used for user-facing errors | `src/utils/toaster.ts::setToasterAnnouncer` |
+| `src/utils/api.ts` | error parsing and default error toast | `src/utils/api.ts::formatErrorMessage` |
+| `src/pages/error/` | route error element | `src/pages/error/ErrorPage.tsx::ErrorPage` |
+| `src/a2ui/fallback.tsx` | surface-scoped error boundary | `src/a2ui/fallback.tsx::A2uiErrorBoundary` |
+
 ## Layer Responsibilities
 
 | Layer | Responsibility | What it does |
@@ -19,8 +30,7 @@ Never bypass a layer — components must not catch API errors directly.
 
 ## Error Boundaries
 
-There is **no app-wide error boundary**. The repo has exactly one, scoped to a
-single surface: `src/components/InteractiveElements/InteractiveErrorBoundary.tsx`.
+The root route renders `ErrorPage` as its React Router `ErrorBoundary` (`src/router.tsx::routes`), so a render error anywhere under it replaces the page. The one component boundary is scoped to a single surface, agent-authored A2UI blocks: `src/a2ui/fallback.tsx::A2uiErrorBoundary`.
 Copy its shape rather than inventing a generic one.
 
 What that boundary actually does:
@@ -234,13 +244,45 @@ const fetchWithRetry = async (endpoint: string, retries = 3) => {
 
 ---
 
-## Common Pitfalls
+## Examples
 
-| Problem | Fix |
-|---------|-----|
-| Entire page crashes on render error | Add a surface-scoped boundary modelled on `InteractiveErrorBoundary` — there is no generic one to reuse |
-| `loading` stuck on `true` after error | Add `finally { this.loading = false }` |
-| No user feedback on failure | Always `toaster.error` + set `error` in store |
-| Double-notification on form errors | `toaster` in store only; component just logs |
-| Error swallowed silently | Always `console.error` even for non-critical |
-| Rethrowing when caller won't handle | Only rethrow if component needs to react |
+### A surface-scoped error boundary
+
+Source: `src/a2ui/fallback.tsx::A2uiErrorBoundary`
+
+```ts
+export class A2uiErrorBoundary extends Component<Props, State> {
+  state: State = { hasError: false }
+
+  static getDerivedStateFromError(): State {
+    return { hasError: true }
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    // eslint-disable-next-line no-console
+    console.error('[A2UI] failed to render surface', error, info)
+  }
+
+  componentDidUpdate(prevProps: Props) {
+    if (this.state.hasError && prevProps.resetKey !== this.props.resetKey) {
+      this.setState({ hasError: false })
+    }
+  }
+
+  render() {
+    if (this.state.hasError) {
+```
+
+## Common pitfalls
+
+| Symptom | Cause | Fix | Evidence |
+|---|---|---|---|
+| Two toasts for one failure | `api` toasts and the store toasts again | pass `skipErrorHandling: true` where the store owns the message | `src/store/skills.ts::skillsStore.getSkillById` |
+| `loading` stays true after a failure | no `finally` reset | reset loading in `finally` | `src/store/skills.ts::skillsStore.getSkillById` |
+| A malformed agent payload breaks a chat message | render error inside an A2UI surface | keep the surface inside `A2uiErrorBoundary` | `src/a2ui/fallback.tsx::A2uiErrorBoundary` |
+
+## Quick reference
+
+| Task | Do | Where |
+|---|---|---|
+| Show an error to the user | `toaster.error(message)` in the store | `src/utils/toaster.ts::setToasterAnnouncer` |

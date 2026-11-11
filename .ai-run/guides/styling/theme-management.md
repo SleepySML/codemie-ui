@@ -2,6 +2,16 @@
 
 > Two themes: `codemieDark` (default) and `codemieLight`. All tokens auto-adapt — use semantic tokens, not raw palette values.
 
+## Overview
+
+`themeService` owns the light/dark/system theme and watches the system setting; custom appearance presets are computed by the rules engine in `src/utils/customAppearance/` and applied as CSS variable overrides.
+
+| Part | What it holds | Start here |
+|---|---|---|
+| `src/utils/themeService.ts` | theme switching and system watch | `src/utils/themeService.ts::themeService` |
+| `src/utils/customAppearance/` | presets, rules engine, overrides and storage | `src/utils/customAppearance/engine.ts::runRules` |
+| `src/hooks/useTheme.ts` | theme state in components | `src/hooks/useTheme.ts::useTheme` |
+
 ## Architecture
 
 Themes are managed via `tailwind.config.ts` using `generateThemes` from `src/utils/themeHelpers.ts`.
@@ -200,3 +210,25 @@ Usage: `card-grid-2:grid-cols-2`, `view-details-bp:flex-row`
 - `src/constants/theme.ts::primeReactPtOptions` — PrimeReact passthrough options built from the preset in `src/styles/presets/lara/index.ts::dropdown` and siblings, applied by `PrimeReactProvider` in `src/App.tsx::primeReactPtOptions`
 - `src/assets/stylesheets/main.scss::tailwind` — the global stylesheet `src/main.tsx` imports; it loads the Tailwind layers and the PrimeReact and toast overrides
 - `styling-guide.md` — complete token reference and Tailwind rules
+
+## Examples
+
+### Applying overrides
+
+Source: `src/utils/customAppearance/index.ts::applyOverrides`
+
+```ts
+export { applyOverrides, clearOverrides, CUSTOM_COLOR_VARIABLES } from './apply'
+```
+
+## Common pitfalls
+
+| Symptom | Cause | Fix | Evidence |
+|---|---|---|---|
+| Custom colours survive a theme switch they should not | overrides stay on the document | call `clearOverrides` before applying another preset | `src/utils/customAppearance/index.ts::clearOverrides` |
+
+## Quick reference
+
+| Task | Do | Where |
+|---|---|---|
+| Add a built-in preset | add it to `PRESETS` | `src/utils/customAppearance/index.ts::PRESETS` |

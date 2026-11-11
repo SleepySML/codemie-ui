@@ -12,22 +12,44 @@ from the same source tree.
 
 | Category | Guide Path | Purpose |
 |---|---|---|
-| Guide Index | `.ai-run/guides/README.md` | Which guide answers which question |
 | Project | `.ai-run/guides/project.md` | Project identity, tracker, source control, adapters |
 | Quality Gates | `.ai-run/guides/quality-gates.md` | Lint, type-check, licence, secrets, tests |
-| Standards | `.ai-run/guides/standards/git-workflow.md` | Branch, commit, merge, MR checklist |
-| Security | `.ai-run/guides/security/README.md` | Scanner and CVE remediation; routes onward |
-| Secure Coding | `.ai-run/guides/development/security-patterns.md` | HTML sinks, redirects, cross-window messages, config, secrets |
+| Accessibility | .ai-run/guides/patterns/accessibility-patterns.md | Focus, live regions, labels and form error announcements |
 | Architecture | `.ai-run/guides/architecture/architecture.md` | System design and where a change belongs |
-| Routing | `.ai-run/guides/architecture/routing-patterns.md` | Route definition and navigation |
+| Architecture | .ai-run/guides/development/code-organization.md | Which directory a new file belongs in |
+| Components | .ai-run/guides/components/component-organization.md | Where a component file lives and how its folder is laid out |
 | Components | `.ai-run/guides/components/component-patterns.md` | Component construction and organization |
-| Patterns | `.ai-run/guides/patterns/state-management.md` | Valtio stores, hooks, forms, modals, accessibility |
-| Development | `.ai-run/guides/development/api-integration.md` | Backend calls, errors, constants, performance |
-| Styling | `.ai-run/guides/styling/styling-guide.md` | Tailwind conventions and theming |
-| Testing | `.ai-run/guides/testing/testing-patterns.md` | Unit and integration test patterns |
-| Local Verification | `.ai-run/guides/testing/local-verification.md` | Harness run, browser scenarios and screenshots before an MR |
+| Components | .ai-run/guides/components/reusable-components.md | Catalog of shared components to reuse before writing a new one |
+| Development | .ai-run/guides/development/constants-usage.md | Where named values live and how they are imported |
+| Development | .ai-run/guides/development/error-handling-patterns.md | Error toasts, store error state and error boundaries |
+| Development | .ai-run/guides/development/performance-patterns.md | Re-render cost and list virtualization |
+| Development | .ai-run/guides/development/refactoring-patterns.md | Splitting large components and extracting hooks |
+| Development | .ai-run/guides/development/workflow-editor-patterns.md | Workflow editor actions, layout, validation and serialization |
+| Forms & Modals | .ai-run/guides/patterns/form-patterns.md | react-hook-form with Yup and the shared form inputs |
+| Forms & Modals | .ai-run/guides/patterns/modal-patterns.md | Popup and ConfirmationModal usage and automatic popups |
+| Git | .ai-run/guides/standards/git-workflow.md | Branch, commit, merge and MR conventions |
+| Git | .ai-run/guides/testing/local-verification.md | Harness run, browser scenarios and screenshots before an MR |
+| Guide Index | `.ai-run/guides/README.md` | Which guide answers which question |
 | Integration | `.ai-run/guides/integration/ticket-flow.md` | Ticket state sync driven by pipeline events |
 | Onboarding | `.ai-run/guides/onboarding/flow-creation-guide.md` | Authoring in-product onboarding flows |
+| Routing | `.ai-run/guides/architecture/routing-patterns.md` | Route definition and navigation |
+| Secure Coding | `.ai-run/guides/development/security-patterns.md` | HTML sinks, redirects, cross-window messages, config, secrets |
+| State | .ai-run/guides/development/api-integration.md | Backend calls through the API client, errors and downloads |
+| State | .ai-run/guides/patterns/custom-hooks.md | Shared hooks and feature flag hooks |
+| State | .ai-run/guides/patterns/state-management.md | Valtio stores, snapshots and store helpers |
+| Styling | `.ai-run/guides/styling/styling-guide.md` | Tailwind conventions and theming |
+| Styling | .ai-run/guides/styling/theme-management.md | Light, dark and custom appearance themes |
+| Testing | .ai-run/guides/testing/qa-strategy.md | What is tested where, in this repository and the external test repository |
+| Testing | `.ai-run/guides/testing/testing-patterns.md` | Unit and integration test patterns |
+| Vulnerability Remediation | .ai-run/guides/security/README.md | Scanner and CVE remediation entry point; routes onward |
+| Vulnerability Remediation | .ai-run/guides/security/dependencies.md | Direct and transitive dependency fixes and licences |
+| Vulnerability Remediation | .ai-run/guides/security/images.md | Dockerfiles, base images and OS packages |
+| Vulnerability Remediation | .ai-run/guides/security/verification.md | Verifying a fix: reinstall, local gates, MR pipeline |
+| Standards | `.ai-run/guides/standards/git-workflow.md` | Branch, commit, merge, MR checklist |
+| Security | `.ai-run/guides/security/README.md` | Scanner and CVE remediation; routes onward |
+| Patterns | `.ai-run/guides/patterns/state-management.md` | Valtio stores, hooks, forms, modals, accessibility |
+| Development | `.ai-run/guides/development/api-integration.md` | Backend calls, errors, constants, performance |
+| Local Verification | `.ai-run/guides/testing/local-verification.md` | Harness run, browser scenarios and screenshots before an MR |
 <!-- ai-run-init:guide-imports end -->
 
 <!-- ai-run-init:task-classifier start -->
@@ -35,18 +57,21 @@ from the same source tree.
 
 | Category | User Intent | Example Requests | P0 Guide | P1 Guide |
 |---|---|---|---|---|
-| Vulnerability Remediation | a scanner or CVE ticket names this repo | fix this CVE; bump a vulnerable package; patch the base image | `.ai-run/guides/security/README.md` | `.ai-run/guides/quality-gates.md` |
-| Secure Coding | rendering untrusted HTML, redirects, secrets, config | sanitize this markdown; open redirect; is this value secret | `.ai-run/guides/development/security-patterns.md` | `.ai-run/guides/security/README.md` |
-| Architecture | where code belongs, boundaries | where should this go?; refactor this boundary | `.ai-run/guides/architecture/architecture.md` | `.ai-run/guides/development/code-organization.md` |
-| Routing | routes and navigation | add a page; fix a redirect after login | `.ai-run/guides/architecture/routing-patterns.md` | `.ai-run/guides/development/security-patterns.md` |
-| Components | building or placing UI components | new component; where does this component live | `.ai-run/guides/components/component-patterns.md` | `.ai-run/guides/components/component-organization.md` |
-| State | shared state and data fetching | add a store; why is this not re-rendering | `.ai-run/guides/patterns/state-management.md` | `.ai-run/guides/development/api-integration.md` |
-| Forms & Modals | forms, dialogs, popups | build this form; add a confirmation modal | `.ai-run/guides/patterns/form-patterns.md` | `.ai-run/guides/patterns/modal-patterns.md` |
-| Styling | Tailwind, themes, appearance | style this panel; make it work in dark mode | `.ai-run/guides/styling/styling-guide.md` | `.ai-run/guides/styling/theme-management.md` |
 | Accessibility | semantics, keyboard, labels | add an aria label; heading order | `.ai-run/guides/patterns/accessibility-patterns.md` | `.ai-run/guides/components/component-patterns.md` |
+| Architecture | where code belongs, boundaries | where should this go?; refactor this boundary | `.ai-run/guides/architecture/architecture.md` | `.ai-run/guides/development/code-organization.md` |
+| Components | building or placing UI components | new component; where does this component live | `.ai-run/guides/components/component-patterns.md` | `.ai-run/guides/components/component-organization.md` |
 | Development | errors, constants, performance | handle this error; extract this constant; slow list | `.ai-run/guides/development/error-handling-patterns.md` | `.ai-run/guides/development/performance-patterns.md` |
-| Testing | only when the user explicitly asks tests | write tests; fix this failing test | `.ai-run/guides/testing/testing-patterns.md` | `.ai-run/guides/testing/qa-strategy.md` |
+| Forms & Modals | forms, dialogs, popups | build this form; add a confirmation modal | `.ai-run/guides/patterns/form-patterns.md` | `.ai-run/guides/patterns/modal-patterns.md` |
 | Git | only when the user explicitly asks git ops | commit; push; open an MR | `.ai-run/guides/standards/git-workflow.md` | `.ai-run/guides/testing/local-verification.md` |
+| Guide Index | finding the right guide for a task | "which guide covers this", "where are the conventions" | - | .ai-run/guides/README.md |
+| Integration | changing how ticket status follows the pipeline | "move the ticket to review", "which events change ticket state" | .ai-run/guides/integration/ticket-flow.md | - |
+| Onboarding | adding or editing an onboarding tour | "add an onboarding flow", "change a tour step" | .ai-run/guides/onboarding/flow-creation-guide.md | - |
+| Routing | routes and navigation | add a page; fix a redirect after login | `.ai-run/guides/architecture/routing-patterns.md` | `.ai-run/guides/development/security-patterns.md` |
+| Secure Coding | rendering untrusted HTML, redirects, secrets, config | sanitize this markdown; open redirect; is this value secret | `.ai-run/guides/development/security-patterns.md` | `.ai-run/guides/security/README.md` |
+| State | shared state and data fetching | add a store; why is this not re-rendering | `.ai-run/guides/patterns/state-management.md` | `.ai-run/guides/development/api-integration.md` |
+| Styling | Tailwind, themes, appearance | style this panel; make it work in dark mode | `.ai-run/guides/styling/styling-guide.md` | `.ai-run/guides/styling/theme-management.md` |
+| Testing | only when the user explicitly asks tests | write tests; fix this failing test | `.ai-run/guides/testing/testing-patterns.md` | `.ai-run/guides/testing/qa-strategy.md` |
+| Vulnerability Remediation | a scanner or CVE ticket names this repo | fix this CVE; bump a vulnerable package; patch the base image | `.ai-run/guides/security/README.md` | `.ai-run/guides/quality-gates.md` |
 <!-- ai-run-init:task-classifier end -->
 
 ## Critical Rules
@@ -59,11 +84,12 @@ from the same source tree.
 | Git Operations | "commit" / "push" / "PR" / "MR" | Only then; load `.ai-run/guides/standards/git-workflow.md` |
 | Shell | ANY shell command | Use bash/Linux-compatible syntax |
 | Carry the ticket key on every branch, commit and MR; ask for it when the request has none | Any branch, commit or MR | load `.ai-run/guides/standards/git-workflow.md` |
+| Commit a manifest and its lock file together | Changing package.json dependencies | load `.ai-run/guides/security/dependencies.md` |
 | Load the security guide before editing for a scanner finding, a CVE or a version pin, and follow its MR handoff | A scanner finding, CVE ticket or security pin | load `.ai-run/guides/security/README.md` |
+| Never hand-edit the generated marketplace types; regenerate them from the snapshot | Changing src/types/generated/ | load `.ai-run/guides/development/code-organization.md` |
 | Reinstall dependencies from the lock file before trusting a test or type-check result | Before trusting any test or type-check result | load `.ai-run/guides/security/verification.md` |
-| Commit a manifest and its lock file together | Changing `package.json` dependencies | load `.ai-run/guides/security/dependencies.md` |
 | Run gates one at a time and report each result; never chain them | Running more than one gate | load `.ai-run/guides/quality-gates.md` |
-| Sanitize at the producer anything rendered through dangerouslySetInnerHTML | Rendering HTML from markdown, an API or an agent | load `.ai-run/guides/development/security-patterns.md` |
+| Sanitize anything rendered through dangerouslySetInnerHTML at the sink or at a named producer, never trust an unsanitized prop | Rendering HTML from markdown, an API or an agent | load `.ai-run/guides/development/security-patterns.md` |
 <!-- ai-run-init:critical-rules end -->
 
 <!-- ai-run-init:commands start -->
@@ -71,9 +97,16 @@ from the same source tree.
 
 | Need | Source Guide | Source Evidence | Notes |
 |---|---|---|---|
-| Install dependencies | `.ai-run/guides/quality-gates.md` | `package.json`, `package-lock.json` | Run before trusting any other gate. |
 | Lint and format | `.ai-run/guides/quality-gates.md` | `package.json` scripts, `.eslintrc.cjs` | Load the guide for the exact command and skip policy. |
-| Type-check | `.ai-run/guides/quality-gates.md` | `package.json` scripts, `tsconfig.json` | |
+| typecheck | .ai-run/guides/quality-gates.md | package.json::typecheck | Load guide before running |
+| license-headers | .ai-run/guides/quality-gates.md | package.json::license-headers | Load guide before running |
+| unit-tests | .ai-run/guides/quality-gates.md | package.json::test | Load guide before running |
+| integration-tests | .ai-run/guides/quality-gates.md | package.json::test | Load guide before running |
+| secrets | .ai-run/guides/quality-gates.md | package.json::secrets | Load guide before running |
+| license | .ai-run/guides/quality-gates.md | package.json::license-check | Load guide before running |
+| sonar | .ai-run/guides/quality-gates.md | package.json::sonar-local | Load guide before running |
+| Git / review workflow | .ai-run/guides/standards/git-workflow.md | git history and project context | Load guide before git operations |
+| Install dependencies | `.ai-run/guides/quality-gates.md` | `package.json`, `package-lock.json` | Run before trusting any other gate. |
 | Tests and coverage | `.ai-run/guides/testing/testing-patterns.md` | `package.json` scripts, `vite.config.ts` (`test.projects`) | Only run or write tests when explicitly requested. |
 | Licence and secret checks | `.ai-run/guides/quality-gates.md` | `package.json` scripts, `.gitleaks.toml` | Read the output, not the exit code. |
 | Run the app, Docker, Keycloak theme | `README.md` | `package.json` scripts, Dockerfiles | Human-facing setup lives in the README. |

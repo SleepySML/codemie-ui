@@ -1,5 +1,39 @@
 # Form Patterns — Factory Guide
 
+## Overview
+
+Forms use react-hook-form with Yup schemas through `yupResolver`; the inputs under `src/components/form/` take a label, hint and error and wire their validation message through `FieldAnnouncer`.
+
+| Part | What it holds | Start here |
+|---|---|---|
+| `src/components/form/Autocomplete/` | autocomplete input | `src/components/form/Autocomplete/Autocomplete.tsx::AutocompleteProps` |
+| `src/components/form/CronScheduleInput/` | cron schedule input with validation | `src/components/form/CronScheduleInput/CronScheduleInput.tsx::CronScheduleInput` |
+| `src/components/form/DatePicker/` | date picker | `src/components/form/DatePicker/DatePicker.tsx::DatePickerProps` |
+| `src/components/form/DropzoneArea/` | drag-and-drop file area | `src/components/form/DropzoneArea/DropzoneArea.tsx::DropzoneArea` |
+| `src/components/form/DynamicFieldsForm/` | fields rendered from a schema of settings | `src/components/form/DynamicFieldsForm/DynamicFieldsForm.tsx::DynamicFieldsForm` |
+| `src/components/form/ExpandableTextarea/` | textarea with an expanded editor | `src/components/form/ExpandableTextarea/ExpandableTextarea.tsx::ExpandableTextareaProps` |
+| `src/components/form/FieldAnnouncer/` | announces field errors to screen readers | `src/components/form/FieldAnnouncer/FieldAnnouncer.tsx::FieldAnnouncerRenderProps` |
+| `src/components/form/File/` | single file input | `src/components/form/File/File.tsx::FileInput` |
+| `src/components/form/FilesDropzone/` | multi-file drop zone | `src/components/form/FilesDropzone/FilesDropzone.tsx::FilesDropzone` |
+| `src/components/form/FormAutocomplete/` | autocomplete bound to react-hook-form | `src/components/form/FormAutocomplete/FormAutocomplete.tsx::FormAutocomplete` |
+| `src/components/form/ImageUpload/` | image upload with preview | `src/components/form/ImageUpload/ImageUpload.tsx::ImageUpload` |
+| `src/components/form/InfoBox/` | info box inside a form | `src/components/form/InfoBox/InfoBox.tsx::InfoBox` |
+| `src/components/form/Input/` | text input with label, hint and error | `src/components/form/Input/Input.tsx::Input` |
+| `src/components/form/InputArray/` | list of text inputs | `src/components/form/InputArray/InputArray.tsx::InputArray` |
+| `src/components/form/InputCopy/` | read-only input with copy | `src/components/form/InputCopy/InputCopy.tsx::InputCopy` |
+| `src/components/form/LinksArray/` | list of link inputs | `src/components/form/LinksArray/LinksArray.tsx::LinksArray` |
+| `src/components/form/MarkdownEditor/` | markdown editor field | `src/components/form/MarkdownEditor/MarkdownEditor.tsx::MarkdownEditor` |
+| `src/components/form/MultiSelect/` | multi-value select | `src/components/form/MultiSelect/MultiSelect.tsx::MultiSelectSize` |
+| `src/components/form/OrderList/` | reorderable list | `src/components/form/OrderList/OrderList.tsx::OrderList` |
+| `src/components/form/RadioButton/` | single radio | `src/components/form/RadioButton/RadioButton.tsx::RadioButtonProps` |
+| `src/components/form/RadioGroup/` | radio group | `src/components/form/RadioGroup/RadioGroup.tsx::RadioOption` |
+| `src/components/form/RecordInput/` | key-value record input | `src/components/form/RecordInput/RecordInput.tsx::RecordItem` |
+| `src/components/form/Select/` | dropdown select | `src/components/form/Select/Select.tsx::Select` |
+| `src/components/form/Switch/` | toggle switch | `src/components/form/Switch/Switch.tsx::Switch` |
+| `src/components/form/Textarea/` | multi-line text input | `src/components/form/Textarea/Textarea.tsx::TextareaProps` |
+| `src/components/form/VersionedField/` | field with version tabs | `src/components/form/VersionedField/VersionedField.tsx::VERSIONED_FIELD_TAB_ID` |
+| `src/components/form/YamlEditor/` | YAML editor field | `src/components/form/YamlEditor/YamlEditor.tsx::YamlEditor` |
+
 ## Stack
 
 | Layer | Library | Version |
@@ -37,7 +71,10 @@
 | `Checkbox` | Boolean toggle |
 | `RadioButton` / `RadioGroup` | Exclusive choice |
 | `Switch` | Toggle switch |
-| `File` / `FilesListInput` | File upload |
+
+### Rules
+- R1. Give a new form primitive its error wiring through `FieldAnnouncer` (it computes `aria-invalid` and `aria-describedby` and re-mounts the `role="alert"` node when the text changes, so a changed error is announced again). Evidence: `src/components/form/FieldAnnouncer/FieldAnnouncer.tsx::FieldAnnouncer`
+| `File` / `FilesDropzone` | File upload (single file / several files) |
 
 ---
 
@@ -246,3 +283,34 @@ guard would let an invalid value be saved, the schema is missing a validator.
 - [ ] Loading state: submit button disabled + label change
 - [ ] Error messages wired to `error` prop and `aria-describedby`
 - [ ] Component under 300 lines
+
+## Examples
+
+### Error wiring for a form field
+
+Source: `src/components/form/FieldAnnouncer/FieldAnnouncer.tsx::FieldAnnouncer`
+
+```ts
+const FieldAnnouncer = ({
+  id,
+  error,
+  errorClassName,
+  describedBy,
+  children,
+}: FieldAnnouncerProps) => {
+```
+
+## Common pitfalls
+
+| Symptom | Cause | Fix | Evidence |
+|---|---|---|---|
+| A screen reader does not re-announce a changed validation error | `role="alert"` fires only when the node is inserted | render the error through `FieldAnnouncer`, which keys the node by its text | `src/components/form/FieldAnnouncer/FieldAnnouncer.tsx::FieldAnnouncer` |
+| A required list input has no visible or announced required marker | `required` was not passed to `InputArray` | pass `required`; the label renders the marker | `src/components/form/InputArray/InputArray.tsx::InputArray` |
+
+## Quick reference
+
+| Task | Do | Where |
+|---|---|---|
+| Add a text field | render `Input` with `name`, `label` and the form's error for that name | `src/components/form/Input/Input.tsx::Input` |
+| Add a dropdown | render `Select` | `src/components/form/Select/Select.tsx::Select` |
+| Add a cron field | render `CronScheduleInput` | `src/components/form/CronScheduleInput/CronScheduleInput.tsx::CronScheduleInput` |

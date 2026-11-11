@@ -1,5 +1,16 @@
 # Accessibility Patterns — Factory Guide
 
+## Overview
+
+Accessibility support is shared code: focus helpers in `src/hooks/`, a polite live region for announcements, field error wiring in `FieldAnnouncer`, a skip link, and id builders for cross-component `aria-labelledby`.
+
+| Part | What it holds | Start here |
+|---|---|---|
+| `src/hooks/useFocusTrap.ts` | focus trap and the focusable selector | `src/hooks/useFocusTrap.ts::useFocusTrap` |
+| `src/components/Announcement/` | polite live region | `src/components/Announcement/Announcement.tsx::Announcement` |
+| `src/components/form/FieldAnnouncer/` | form error announcement | `src/components/form/FieldAnnouncer/FieldAnnouncer.tsx::FieldAnnouncer` |
+| `src/utils/ariaIds.ts` | shared aria id builders | `src/utils/ariaIds.ts::dataSourceNameId` |
+
 ## Target: WCAG 2.1 Level AA
 
 All components must be keyboard-accessible, screen-reader-friendly, and pass contrast checks.
@@ -289,3 +300,26 @@ it('has no accessibility violations', async () => {
   expect(await axe(container)).toHaveNoViolations()
 })
 ```
+
+## Examples
+
+### Shared aria id builders
+
+Source: `src/utils/ariaIds.ts::workflowNameId`
+
+```ts
+export const workflowNameId = (id: string) => `workflow-name-${id}`
+```
+
+## Common pitfalls
+
+| Symptom | Cause | Fix | Evidence |
+|---|---|---|---|
+| A changed error is not re-announced | `role="alert"` fires on insertion only | render it through `FieldAnnouncer` | `src/components/form/FieldAnnouncer/FieldAnnouncer.tsx::FieldAnnouncer` |
+| Arrow keys stop scrolling after a click in main | permanent `tabindex` on `<main>` | set it only while the skip link focuses main | `src/components/SkipLink/SkipLink.tsx::SkipLink` |
+
+## Quick reference
+
+| Task | Do | Where |
+|---|---|---|
+| Trap focus in a custom overlay | `useFocusTrap` | `src/hooks/useFocusTrap.ts::useFocusTrap` |

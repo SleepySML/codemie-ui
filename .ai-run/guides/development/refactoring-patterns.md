@@ -4,6 +4,15 @@
 
 ---
 
+## Overview
+
+Large components are split by moving state and effects into a hook beside the component (or into `src/hooks/` when shared) and sub-components into the same folder; the workflow editor keeps its logic in `src/utils/workflowEditor/` behind `useWorkflowEditor`.
+
+| Part | What it holds | Start here |
+|---|---|---|
+| `src/hooks/` | shared hooks extracted from components | `src/hooks/useWorkflowEditor.ts::useWorkflowEditor` |
+| `src/utils/workflowEditor/` | editor logic extracted from the canvas | `src/utils/workflowEditor/index.ts::WorkflowEditor` |
+
 ## Hard Limit: 300 Lines Per Component
 
 Every component file must stay under 300 lines. Start planning the split when approaching 250 lines.
@@ -88,7 +97,7 @@ const MyModal = ({ visible, onHide }) => {
 
 Hook file (`hooks/useMyModal.ts`) contains all state, effects, and handlers. The component file shrinks to JSX + hook call.
 
-Hook naming: `use` + component name + optional suffix (e.g. `useAssistantForm`, `useWorkflowEditor`).
+Hook naming: `use` + component name + optional suffix (e.g. `useMCPServerModal`, `useWorkflowEditor`).
 
 Place in `src/hooks/` if reusable across multiple components, or co-locate in the component folder if single-use.
 
@@ -210,14 +219,42 @@ Do not skip tests to speed up the refactor — a green test suite after each ste
 
 ---
 
-## Common Pitfalls
+## Examples
 
-| Problem | Fix |
-|---------|-----|
-| Sub-component needs too many props | It has too much responsibility — split further or lift logic into a hook |
-| Hook grows beyond 150 lines | Split into two focused hooks |
-| Circular imports after extraction | Check dependency direction — child should not import parent |
-| Tests break after refactoring | Props interface changed — update test file accordingly |
-| Extract creates duplicate state | Hoist shared state to the parent or the hook |
-| Refactor PR is too large to review | Split into one commit per extracted file |
-| Renamed file breaks existing import | Update all callers before merging |
+### A component's escape handling extracted to a hook
+
+Source: `src/hooks/useEscapeKey.ts::useEscapeKey`
+
+```ts
+export const useEscapeKey = (onEscape: () => void, isActive = true) => {
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onEscape()
+      }
+    }
+
+    if (isActive) {
+      window.addEventListener('keydown', handleEscape)
+    }
+
+    return () => {
+      if (isActive) {
+        window.removeEventListener('keydown', handleEscape)
+      }
+    }
+  }, [onEscape, isActive])
+}
+```
+
+## Common pitfalls
+
+| Symptom | Cause | Fix | Evidence |
+|---|---|---|---|
+| An extracted table cell is flagged as a nested component | renderer declared inside the parent | declare it at module scope | `src/components/ProjectNameCell/ProjectNameCell.tsx::renderProjectNameCell` |
+
+## Quick reference
+
+| Task | Do | Where |
+|---|---|---|
+| Extract logic from a modal | move state and handlers into `use<Name>.ts` beside it | `src/pages/settings/administration/components/MCPServerModal/useMCPServerModal.ts::useMCPServerModal` |

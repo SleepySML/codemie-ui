@@ -4,6 +4,15 @@ React 18.3.1 / TypeScript 5.8.3
 
 ---
 
+## Overview
+
+A shared component gets its own folder under `src/components/<Name>/` with `<Name>.tsx`, an `index.ts` re-export and a `__tests__/` folder; a component used by one feature lives under that feature's `components/` folder in `src/pages/`.
+
+| Part | What it holds | Start here |
+|---|---|---|
+| `src/components/<Name>/` | one shared component, its re-export and tests | `src/components/Spinner/index.ts::Spinner` |
+| `src/pages/<feature>/components/` | components private to one feature | `src/pages/chat/components/ChatHistory/ChatUserMessage/ChatUserMessage.tsx::ChatUserMessage` |
+
 ## 1. Directory Placement Decision
 
 ```
@@ -215,3 +224,25 @@ Real reference showing extraction in practice:
 | Shared types | `src/types/` | `assistant.ts`, `user.ts` |
 | Shared constants | `src/constants/` | `api.ts`, `routes.ts` |
 | Tests | `__tests__/` inside component dir | `Button/__tests__/Button.test.tsx` |
+
+## Examples
+
+### A component folder's re-export
+
+Source: `src/components/Spinner/index.ts::Spinner`
+
+```ts
+export { default } from './Spinner'
+```
+
+## Common pitfalls
+
+| Symptom | Cause | Fix | Evidence |
+|---|---|---|---|
+| A form input is not found under `src/components/` | form inputs live one level down | look in `src/components/form/<Name>/` | `src/components/form/Input/Input.tsx::Input` |
+
+## Quick reference
+
+| Task | Do | Where |
+|---|---|---|
+| Add a shared component | create `src/components/<Name>/<Name>.tsx`, `index.ts` and `__tests__/` | `src/components/Spinner/Spinner.tsx::Spinner` |

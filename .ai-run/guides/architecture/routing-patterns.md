@@ -2,13 +2,27 @@
 
 ## Overview
 
-- Router: **React Router v7.9.5** (`react-router` package — import from `'react-router'`, not `'react-router-dom'`)
-- Strategy: **browser history** (`createBrowserRouter` with `basename: import.meta.env.BASE_URL`) — paths are real URL paths, no `#/` (`src/router.tsx::router`)
-- Route tree defined in a single file: `src/router.tsx`
-- Entry point: `src/main.tsx::RouterProvider` renders `<RouterProvider router={router} />`
-- Route IDs are string constants in `src/constants/routes.ts`; reference by ID, not raw string
+All routes are declared in `src/router.tsx`: one `RouteObject[]` per feature, spread into the root route whose element is `App`, plus the sign-in, sign-up and login-success routes beside it. `createBrowserRouter` uses `import.meta.env.BASE_URL` as basename; old `#/` URLs are rewritten by `redirectHashRoutes` before the router starts.
 
----
+| Part | What it holds | Start here |
+|---|---|---|
+| `src/pages/analytics/` | usage and spending analytics dashboards | `src/pages/analytics/AnalyticsPage.tsx::AnalyticsPage` |
+| `src/pages/applications/` | federated, iframe and hosted applications | `src/pages/applications/ApplicationsPage.tsx::ApplicationsPage` |
+| `src/pages/assistants/` | assistant list, details, create and edit | `src/pages/assistants/AssistantsListPage.tsx::AssistantsListPage` |
+| `src/pages/chat/` | chat page, history and shared chats | `src/pages/chat/ChatPage.tsx::ChatPage` |
+| `src/pages/dataSources/` | data source list, details, create and edit | `src/pages/dataSources/DataSourcesPage.tsx::DataSourcesPage` |
+| `src/pages/error/` | the root route's error element | `src/pages/error/ErrorPage.tsx::ErrorPage` |
+| `src/pages/favorites/` | favorites by entity type | `src/pages/favorites/FavoritesPage.tsx::FavoritesPage` |
+| `src/pages/help/` | help page and models catalog | `src/pages/help/HelpPage.tsx::HelpPage` |
+| `src/pages/integrations/` | user and project integrations | `src/pages/integrations/IntegrationsPage.tsx::IntegrationsPage` |
+| `src/pages/katas/` | katas list and editor | `src/pages/katas/KatasPage.tsx::KatasPage` |
+| `src/pages/login-success/` | landing page after an external login | `src/pages/login-success/LoginSuccessPage.tsx::LoginSuccessPage` |
+| `src/pages/releaseNotes/` | release notes page | `src/pages/releaseNotes/ReleaseNotesPage.tsx::ReleaseNotesPage` |
+| `src/pages/schedulers/` | schedulers and their run history | `src/pages/schedulers/SchedulersPage.tsx::SchedulersPage` |
+| `src/pages/settings/` | profile, administration and settings tabs | `src/pages/settings/AdministrationPage.tsx::AdministrationPage` |
+| `src/pages/skills/` | skills list, details, create and edit | `src/pages/skills/SkillsListPage.tsx::SkillsListPage` |
+| `src/pages/terms/` | terms and conditions page | `src/pages/terms/TermsAndConditionsPage.tsx::TermsAndConditionsPage` |
+| `src/pages/workflows/` | workflow list, editor, details and executions | `src/pages/workflows/WorkflowsListPage.tsx::WorkflowsListPage` |
 
 ## Route Structure
 
@@ -248,3 +262,30 @@ src/pages/assistants/utils/getAssistantLink.tsx::getAssistantLink
 | Use loader `redirect()` for default sub-routes | Add a catch-all `index` component that just calls `navigate` |
 | Keep route arrays feature-scoped in `src/router.tsx` | Scatter route definitions across page files |
 | Spread auth routes outside the root route object | Nest sign-in/sign-up under `App` (they must render without the nav shell) |
+
+## Examples
+
+### A feature's back navigation
+
+Source: `src/pages/workflows/utils/goBackWorkflows.ts::goBackWorkflows`
+
+```ts
+export const goBackWorkflows = (
+  defaultPath: string | (Partial<RouteOptions> & { name: string }) = WORKFLOWS_ALL
+) => {
+```
+
+## Common pitfalls
+
+| Symptom | Cause | Fix | Evidence |
+|---|---|---|---|
+| Back on a create or edit page leaves the app after a refresh | `navigate(-1)` has no history entry after a reload | use the feature's `goBack*` helper over `navigateBack` | `src/utils/helpers.ts::navigateBack` |
+| A crafted `#/` link or stored return URL redirects off-site | protocol-relative or backslash paths reach `location` | keep `redirectHashRoutes` and `sanitizePostLoginRedirect` stripping them | `src/utils/postLoginRedirect.ts::sanitizePostLoginRedirect` |
+| A guarded page shows the 404 page in a deployment that has the feature | its `FeatureGuard` flag key differs from the backend config id | use the key from `FEATURE_FLAGS` | `src/components/FeatureGuard.tsx::FeatureGuard` |
+
+## Quick reference
+
+| Task | Do | Where |
+|---|---|---|
+| Add a route | add a `RouteObject` with an `id` from `src/constants/routes.ts` to the feature's array | `src/router.tsx::routes` |
+| Navigate from non-React code | `getRouter().navigate(...)` | `src/routerInstance.ts::getRouter` |

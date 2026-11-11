@@ -6,6 +6,15 @@ against what, with what evidence, and how it reaches the MR description.
 Unit and integration tests prove the component works against mocks. This guide proves the feature works
 in a real browser against a real backend. Both are required for a user-visible change.
 
+## Overview
+
+Before an MR the change is checked against a real backend: the sanity UI suite of the CodeMie test harness, then the browser scenarios of the change, reported in the MR template's `## Test harness` and `## Verified locally` sections.
+
+| Part | What it holds | Start here |
+|---|---|---|
+| `package.json` | the harness command | `package.json::test-harness` |
+| `.gitlab/merge_request_templates/Default.md` | where the evidence goes | `.gitlab/merge_request_templates/Default.md` § Verified locally |
+
 ## Order
 
 1. Quality gates pass — [quality-gates.md](../quality-gates.md).
@@ -72,3 +81,25 @@ Fill the MR template ([.gitlab/merge_request_templates/Default.md](../../../.git
 - `## Test harness` — the pasted summary and any failures grouped by cause.
 - `## Verified locally` — a one-line stand description and a short bullet list of the scenarios checked on top, then the scenarios in a collapsed `<details>` block: one subsection per scenario (Did / Expected / Happened) with its screenshots (mandatory, see Evidence); a scenario without screenshots is incomplete.
 - Do not list bugs found or setup problems fixed while preparing the environment; those belong in commits or the ticket.
+
+## Examples
+
+### Harness command
+
+Source: `package.json::test-harness`
+
+```
+    "test-harness": "uvx codemie-test-harness run sanity-ui -n 8",
+```
+
+## Common pitfalls
+
+| Symptom | Cause | Fix | Evidence |
+|---|---|---|---|
+| The MR compliance check fails | the `## Test harness` heading or its code block was removed | keep both and paste the summary | `README.md` § Sanity UI suite (CodeMie test harness) |
+
+## Quick reference
+
+| Task | Do | Where |
+|---|---|---|
+| Run the sanity suite | `npm run test-harness` | `README.md` § Sanity UI suite (CodeMie test harness) |

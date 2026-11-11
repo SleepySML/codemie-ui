@@ -2,6 +2,19 @@
 
 > CRITICAL: Tailwind CSS only. No custom CSS. No inline styles. No arbitrary values.
 
+## Overview
+
+Styling is Tailwind with theme tokens defined as CSS variables in the global stylesheets; PrimeReact widgets are styled through pass-through presets under `src/styles/presets/lara/`, one folder per widget, registered in `primeReactPtOptions`.
+
+| Part | What it holds | Start here |
+|---|---|---|
+| `src/styles/presets/lara/checkbox/` | checkbox pass-through classes | `src/styles/presets/lara/checkbox/index.ts::preset` |
+| `src/styles/presets/lara/dropdown/` | dropdown pass-through classes | `src/styles/presets/lara/dropdown/index.ts::preset` |
+| `src/styles/presets/lara/inputswitch/` | input switch pass-through (empty) | `src/styles/presets/lara/inputswitch/index.ts::inputSwitchOptions` |
+| `src/styles/presets/lara/tag/` | tag pass-through classes | `src/styles/presets/lara/tag/index.ts::preset` |
+| `src/assets/stylesheets/` | global SCSS, fonts and CSS variables | `src/assets/stylesheets/main.scss::font-family-body-sans` |
+| `tailwind.config.ts` | Tailwind theme | `tailwind.config.ts::content` |
+
 ## Mandatory Rules
 
 1. Only Tailwind CSS classes — no `<style>` blocks, no `style={{}}`, no `.css`/`.scss` files for component styles
@@ -283,3 +296,29 @@ When you need a color that has no existing token:
 - [ ] All spacing from predefined scale
 - [ ] Responsive breakpoints verified to exist in `tailwind.config.ts`
 - [ ] Tokens verified in both dark and light themes
+
+## Examples
+
+### Registering the presets
+
+Source: `src/constants/theme.ts::primeReactPtOptions`
+
+```ts
+export const primeReactPtOptions: APIOptions = {
+  unstyled: false,
+  pt: LaraReact,
+  hideOverlaysOnDocumentScrolling: true,
+}
+```
+
+## Common pitfalls
+
+| Symptom | Cause | Fix | Evidence |
+|---|---|---|---|
+| Chat prose renders in a different font | a component SCSS hard-codes a font list | use `var(--font-family-body-sans)`; a test checks the chat prose files | `src/assets/stylesheets/__tests__/fontFamilyBodySans.consistency.test.ts::COMPONENT_SCSS_PATHS` |
+
+## Quick reference
+
+| Task | Do | Where |
+|---|---|---|
+| Restyle a PrimeReact widget | edit its preset under `src/styles/presets/lara/<widget>/` | `src/styles/presets/lara/index.ts::checkbox` |

@@ -1,20 +1,19 @@
 # Modal Patterns — Factory Guide
 
+## Overview
+
+Every dialog is a `Popup` (which wraps PrimeReact's `Dialog`) or a `ConfirmationModal` built on it; popups the app opens on its own are ordered by `AutoPopupManager`.
+
+| Part | What it holds | Start here |
+|---|---|---|
+| `src/components/Popup/` | the modal component and its props | `src/components/Popup/Popup.tsx::PopupProps` |
+| `src/components/ConfirmationModal/` | confirmation dialog for destructive actions | `src/components/ConfirmationModal/ConfirmationModal.tsx::ConfirmationModalProps` |
+| `src/components/appLevel/AutoPopupManager.tsx` | priority order of automatic popups | `src/components/appLevel/AutoPopupManager.tsx::AutoPopupManager` |
+
 ## CRITICAL RULE
 
 **NEVER import or use PrimeReact `Dialog` directly.**
 All modals MUST use the `Popup` component from `src/components/Popup/`.
-
----
-
-## Quick Reference
-
-| Situation | Component | Import |
-|-----------|-----------|--------|
-| Standard form modal | `Popup` | `@/components/Popup` |
-| Delete / destructive confirm | `ConfirmationModal` | `@/components/ConfirmationModal` |
-| Custom footer layout | `Popup` + `footerContent` prop | `@/components/Popup` |
-| Modal with complex logic | `Popup` + custom hook | `@/hooks/` or co-located `useXxxModal.ts` |
 
 ---
 
@@ -237,3 +236,45 @@ useEffect(() => {
 - [ ] Icon-only buttons have `aria-label`
 - [ ] Destructive actions use `ConfirmationModal` with `ButtonType.DELETE`
 - [ ] Component under 300 lines (extract hook if approaching)
+
+## Examples
+
+### Popup props
+
+Source: `src/components/Popup/Popup.tsx::PopupProps`
+
+```ts
+export interface PopupProps {
+  isFullWidth?: boolean
+  header?: string
+  headerDescription?: ReactNode
+  visible?: boolean
+  onHide: () => void
+  onSubmit?: () => void
+  submitText?: string
+  /** Selector hook for the submit button (e.g. `moderation-submit`). */
+  submitTestId?: string
+  /** Selector hook for the cancel button. */
+  cancelTestId?: string
+  submitDisabled?: boolean
+  overlayClassName?: string
+  hideFooter?: boolean
+  cancelText?: string
+  bodyClassName?: string
+  withBorder?: boolean
+  withBorderBottom?: boolean
+  hideClose?: boolean
+```
+
+## Common pitfalls
+
+| Symptom | Cause | Fix | Evidence |
+|---|---|---|---|
+| Two automatic popups open at once | a popup opened on its own instead of through the manager | add it to `AutoPopupManager`'s priority order | `src/components/appLevel/AutoPopupManager.tsx::AutoPopupManager` |
+
+## Quick reference
+
+| Task | Do | Where |
+|---|---|---|
+| Add a confirmation step | render `ConfirmationModal` with `header`, `message`, `onConfirm`, `onCancel` | `src/components/ConfirmationModal/ConfirmationModal.tsx::ConfirmationModalProps` |
+| Add a form modal | render `Popup` with `onSubmit` and `submitText` | `src/components/Popup/Popup.tsx::PopupProps` |

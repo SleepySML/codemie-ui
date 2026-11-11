@@ -4,6 +4,18 @@
 
 ---
 
+## Overview
+
+Code is grouped by kind under `src/`: pages and components for UI, stores for state, hooks for reusable React logic, utils for framework-free helpers, constants and types for shared values and shapes. Larger utilities get their own folder under `src/utils/`.
+
+| Part | What it holds | Start here |
+|---|---|---|
+| `src/utils/` | framework-free helpers | `src/utils/helpers.ts::navigateBack` |
+| `src/utils/storage/` | second copy of the localStorage helpers; `@/utils/storage` resolves to `src/utils/storage.ts` | `src/utils/storage/index.ts::compoundKey` |
+| `src/utils/customAppearance/` | custom theme presets, rules engine and persistence | `src/utils/customAppearance/engine.ts::runRules` |
+| `src/utils/workflowEditor/` | workflow editor logic: actions, graph build, serialization | `src/utils/workflowEditor/serialization/serializer.ts::serialize` |
+| `src/types/` | shared types; generated API types under generated/ | `src/types/common.ts::Pagination` |
+
 ## File Naming Conventions
 
 | Type | Convention | Example |
@@ -282,3 +294,29 @@ return <div>{renderHeader()}{renderBody()}</div>
 - `src/hooks/` — custom hook examples
 - `refactoring-patterns.md` — how to split large components
 - [`../patterns/custom-hooks.md`](../patterns/custom-hooks.md) — hook extraction patterns
+
+## Examples
+
+### A user-scoped localStorage helper
+
+Source: `src/utils/storage.ts::compoundKey`
+
+```ts
+const compoundKey = (userId: string, key: string): string => {
+  return `${userId}_${key}`
+}
+```
+
+## Common pitfalls
+
+| Symptom | Cause | Fix | Evidence |
+|---|---|---|---|
+| A change to `src/utils/storage/index.ts` has no effect | `@/utils/storage` resolves to the file `src/utils/storage.ts`; the folder copy is imported by nothing | edit `src/utils/storage.ts` | `src/utils/storage.ts::compoundKey` |
+| `npm run check:pre-commit` fails on `src/types/generated/` | the generated marketplace types were edited by hand or the snapshot changed | run `npm run generate:types` (or `generate:types:refresh` against a backend) | `src/types/generated/marketplaceManagement.ts::GENERATED` |
+
+## Quick reference
+
+| Task | Do | Where |
+|---|---|---|
+| Add a shared helper | put it in the matching `src/utils/<topic>.ts` | `src/utils/helpers.ts::navigateBack` |
+| Read the README layout | see the project structure section | `README.md` § Project Structure |

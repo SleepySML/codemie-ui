@@ -6,6 +6,17 @@ browser build, secrets in the repo, and suppression hygiene.
 
 This is about writing secure code. Remediating a reported finding starts at the index.
 
+## Overview
+
+Untrusted input reaches the DOM through HTML sinks, URLs and redirects. The code sanitizes HTML with DOMPurify, allows images only from an allow list, normalizes agent-supplied URLs before rendering A2UI media, and strips protocol-relative paths from stored and hash redirects.
+
+| Part | What it holds | Start here |
+|---|---|---|
+| `src/utils/postLoginRedirect.ts` | return-URL storage with open-redirect checks | `src/utils/postLoginRedirect.ts::sanitizePostLoginRedirect` |
+| `src/utils/redirectHashRoutes.ts` | rewrite of legacy `#/` URLs | `src/utils/redirectHashRoutes.ts::redirectHashRoutes` |
+| `src/utils/imageAllowList.ts` | which image sources may load | `src/utils/imageAllowList.ts::isImageAllowed` |
+| `src/a2ui/utils.ts` | agent URL sanitizing | `src/a2ui/utils.ts::sanitizeAgentUrl` |
+
 ## HTML sinks
 
 ```bash
@@ -17,7 +28,7 @@ Three shapes exist in `src/` today, and the difference between them is the whole
 
 | Shape | Example | Safe because |
 |---|---|---|
-| Sanitize inline at the sink | `src/pages/chat/.../ChatUserMessage.tsx` | The `DOMPurify.sanitize` call is on the same line as the render |
+| Sanitize inline at the sink | `src/pages/chat/components/ChatHistory/ChatUserMessage/ChatUserMessage.tsx::ChatUserMessage` | The `DOMPurify.sanitize` call is on the same line as the render |
 | Sanitize at the producer, pass HTML down | `src/components/markdown/MarkdownTokens.tsx` → `tokens/TableBlock.tsx` | `MarkdownTokens` sanitizes, `TableBlock` renders its `html` prop untouched |
 | Render a constant | the `gradientSvg` sinks under `src/pages/workflows/`, the close button in `src/utils/toaster.ts` | The value is an imported SVG asset or a literal in the same file, never request data |
 
@@ -55,6 +66,7 @@ The rule that fix encodes:
 ## Agent-authored A2UI media
 
 - **Draw agent-supplied media through the project renderers.** `Image`, `Video` and `AudioPlayer` are registered in `src/a2ui/registry.tsx::OWN_COMPONENTS` through `src/a2ui/factory.tsx::createMediaImplementation` instead of the SDK catalog; a new A2UI component that loads a URL from the agent is registered the same way.
+- **Normalize an agent-supplied URL with `sanitizeAgentUrl` before it reaches an attribute.** It returns `null` for a non-string, an empty or relative reference, or any protocol other than `http:` and `https:` (`src/a2ui/utils.ts::sanitizeAgentUrl`).
 
 ## Cross-window messages
 
@@ -168,3 +180,58 @@ nothing in the repository supplies them elsewhere.
 
 That is the current state. Changing it does not belong inside an unrelated fix: `nginx.conf` ships inside the image and no gate validates it, so a header
 change is its own ticket with its own rebuild and its own manual verification.
+
+## Examples
+
+### Sanitizing a stored return URL
+
+Source: `src/utils/postLoginRedirect.ts::sanitizePostLoginRedirect`
+
+```ts
+export function sanitizePostLoginRedirect(redirect: string | null | undefined): string | null {
+  if (!redirect) return null
+  // Reject protocol-relative and backslash-relative paths (CWE-601 open-redirect defence).
+  if (!redirect.startsWith('/') || redirect.startsWith('//') || redirect.startsWith('/\\')) {
+    return null
+  }
+  return redirect
+}
+```
+
+### Normalizing an agent-supplied URL
+
+Source: `src/a2ui/utils.ts::sanitizeAgentUrl`
+
+```ts
+export function sanitizeAgentUrl(rawUrl: unknown): string | null {
+  if (typeof rawUrl !== 'string') return null
+
+  const trimmed = rawUrl.trim()
+  if (!trimmed) return null
+
+  let parsed: URL
+  try {
+    // No base URL on purpose: relative references must fail here.
+    parsed = new URL(trimmed)
+  } catch {
+    return null
+  }
+
+  if (!ALLOWED_PROTOCOLS.has(parsed.protocol)) return null
+
+  return parsed.href
+}
+```
+
+## Common pitfalls
+
+| Symptom | Cause | Fix | Evidence |
+|---|---|---|---|
+| An injected markdown image fetches an attacker URL | image sources were not checked | route every rendered image through `isImageAllowed` | `src/utils/imageAllowList.ts::isImageAllowed` |
+| Sign-in returns the user to another site | a `//host` or `/\host` return path | read it through `consumePostLoginRedirect` | `src/utils/postLoginRedirect.ts::consumePostLoginRedirect` |
+
+## Quick reference
+
+| Task | Do | Where |
+|---|---|---|
+| Configure the image allow list | see the README section | `README.md` § Image Allow-List |

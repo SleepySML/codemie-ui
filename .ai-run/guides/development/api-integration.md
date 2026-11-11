@@ -2,6 +2,16 @@
 
 > CRITICAL: Custom fetch wrapper only. NOT Axios. Call `.json()` on responses. API calls in Valtio stores only — never in components.
 
+## Overview
+
+Every backend call goes through the `api` singleton in `src/utils/api.ts`: `get`/`post`/`put`/`patch`/`delete` return a `Response` and reject with a `Response` carrying `parsedError` on failure, after toasting the error unless `skipErrorHandling` is set. `stream`, `postMultipart`, `putBinary` and `downloadFileStream` cover streaming, uploads and downloads.
+
+| Part | What it holds | Start here |
+|---|---|---|
+| `src/utils/api.ts` | the API client | `src/utils/api.ts::API` |
+| `src/utils/handleMultipartError.ts` | HTTP error type for multipart requests | `src/utils/handleMultipartError.ts::HttpError` |
+| `src/store/utils/` | helpers stores use to read response bodies | `src/store/utils/parseApiResponse.ts::extractArrayFromResponse` |
+
 ## Quick Rules
 
 | Rule | Correct | Wrong |
@@ -228,18 +238,6 @@ VITE_SUFFIX=/app          # optional URL suffix
 
 ---
 
-## Common Pitfalls
-
-| Pitfall | Symptom | Fix |
-|---------|---------|-----|
-| `response.data` instead of `await response.json()` | `data` is `undefined` | Always call `.json()` |
-| API call inside component `useEffect` | Logic duplicated, no shared state | Move to store method |
-| `.json()` on empty DELETE response | `SyntaxError: Unexpected end of JSON` | Skip `.json()` for DELETE |
-| No `finally { this.loading = false }` | Spinner never stops | Always use `finally` block |
-| Axios import | Runtime error or missing methods | Use `@/utils/api` only |
-
----
-
 ## Backend Semantic Contracts
 
 When a field's absence or emptiness has meaning on the backend (e.g. "missing filter = allow
@@ -255,3 +253,46 @@ backend behavior — treat it as a cross-repo change, not a UI tweak.
 - `src/utils/api.ts` — fetch wrapper implementation
 - `src/store/` — all store files follow the pattern above
 - [`../patterns/state-management.md`](../patterns/state-management.md) — Valtio store conventions
+
+## Examples
+
+### Error message built from an error body
+
+Source: `src/utils/api.ts::formatErrorMessage`
+
+```ts
+export function formatErrorMessage(body: ErrorBody, includeHelp = true): string {
+  try {
+    const { message, details, help } = body.error
+    let strDetails: string
+
+    if (details !== null && typeof details === 'object') {
+      strDetails = JSON.stringify(details)
+    } else {
+      strDetails = details ?? ''
+    }
+
+    let formattedError = message
+
+    if (strDetails) {
+      formattedError += `<br> ${strDetails.replaceAll('<br>', '').trim()}`
+    }
+
+    if (includeHelp && help) {
+      formattedError += `<br><i>${help}</i>`
+    }
+```
+
+## Common pitfalls
+
+| Symptom | Cause | Fix | Evidence |
+|---|---|---|---|
+| An upload fails with 'The upload was redirected' | `putBinary` never follows redirects, and an expired SSO session answers with one | reload the page to renew the session | `src/utils/api.ts::API.putBinary` |
+| A query array arrives as one comma-joined value or as repeated keys unexpectedly | `queryParamArrayHandling` defaults to `separate` | pass `compact` when the endpoint expects a comma list | `src/utils/api.ts::API.makeRequest` |
+
+## Quick reference
+
+| Task | Do | Where |
+|---|---|---|
+| Call an endpoint | `await api.get('v1/...')` then `await response.json()` in a store method | `src/store/skills.ts::skillsStore.getSkillById` |
+| Download a file | `api.downloadFileStream(url, type, fileName)` | `src/utils/api.ts::API.downloadFileStream` |

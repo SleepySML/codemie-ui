@@ -5,27 +5,30 @@
 ## Branch Naming Convention
 
 - base branch: main
-- pattern: `EPMCDME-<n>_<short-description>`
+- pattern: `EPMCDME-<n>_<short-kebab-description>`
 
 ### Rules
-- R1. Create every branch from `main` and name it with the ticket key, an underscore and a short kebab-case description, such as `EPMCDME-12399_add-hint-text`.
+- R1. Create every branch from `main` and name it with the ticket key, an underscore and a short kebab-case description (`EPMCDME-15631_cost-center-filtering`), the form most recent remote branches use; no hook or CI job in this repository checks branch names, so check the name before pushing.
 
 ## Commit Message Format
 
 ```
-EPMCDME-<n>: <Capitalised summary>
+EPMCDME-<n>: <Capitalised imperative sentence>
 ```
 
-Examples: `EPMCDME-16522: Mark unknown and understated session cost in CLI Analytics`, `EPMCDME-14856: Fix Datasource Type dropdown black background`, `Generate release notes for version 2.66.0`
+Examples: `EPMCDME-15960: Fix InputArray required asterisk size to match other form labels`, `EPMCDME-16851: Turn katas off by default`, `EPMCDME-14536: Decouple Budget Management admin tab from Enterprise`
 
 ### Rules
-- R1. Write every commit subject as the ticket key with a non-zero number, a colon, a space and a capitalised sentence (`EPMCDME-123: Fix authentication redirect loop`); release commits use `Generate release notes for version <x.y.z>` and reverts `Revert "<original subject>"`.
-- R2. The commit format is a team convention; no hook or CI job in this repository enforces it, so check each subject before pushing.
+- R1. Write every commit subject as the ticket key with a non-zero number, a colon, a space and a capitalised imperative sentence, first line under 72 characters (`EPMCDME-123: Fix authentication redirect loop`).
+- R2. Use `Generate release notes for version <x.y.z>` only for a release commit and `Revert "<original subject>"` only for a revert; both are maintainer formats.
+- R3. Check each subject yourself before pushing: `.husky/pre-commit` runs no message check and `.gitlab-ci.yml` only includes an external guard template, so nothing in this repository rejects a malformed subject.
 
 ## Merge Strategy
 
 ### Rules
-- R1. Squash-merge a branch into `main` so it lands as one commit whose subject follows the commit format. Evidence: recorded user decision
+- R1. Squash-merge a branch into `main` so it lands as one commit whose subject follows the commit format (recorded user decision; `main` holds no merge commits).
+- R2. Open every MR as Draft and mark it Ready only when the work is complete and the companion MRs of the same ticket (UI, SDK, backend) exist, because autoreview and the review pipeline skip Draft MRs; the default template `.gitlab/merge_request_templates/Default.md` ends with the `/draft` quick action, and `glab mr create` needs `--draft`.
+- R3. Fill the MR body from `.gitlab/merge_request_templates/Default.md` and keep its `## Test harness` heading and code block, which the MR compliance bot checks; paste the `npm run test-harness` summary there and put screenshots under `## Verified locally`.
 
 ## MR State: Draft First
 
@@ -45,5 +48,6 @@ Ready with `glab mr update <id> --ready` or the "Mark as ready" button.
 ## Troubleshooting
 
 - When the pre-commit hook fails on licence headers, run `npm run license-headers:fix`, re-stage and commit again.
-- When the pre-commit hook fails on secrets detection with `No container engine found` or a stopped daemon, start Docker, Podman or Apple Containers and commit again; the script exits 1 in both cases, so the commit is blocked, not skipped.
+- When the secrets step fails with `No container engine found` or a stopped daemon, start Docker, Podman or Apple Containers and commit again; `scripts/validate-secrets.mjs` exits 1 in both cases, so the commit is blocked, not skipped.
+- When the Sonar step fails before any scan, check `.sonarlint/connectedMode.json`, `sonar-project.properties` and the git HEAD: `scripts/sonar/run-local-sonar.mjs` reads all three before it looks at `SONAR_TOKEN`, so a missing one blocks the commit even without a token.
 - Resolve a merge conflict by rebasing the feature branch on `origin/main`, then push it again.

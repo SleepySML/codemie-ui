@@ -6,10 +6,10 @@ Run order is fastest-to-slowest.
 
 | Command | Covers | Source |
 |---|---|---|
-| `npm run check:pre-commit` | generated marketplace types up to date, typecheck, lint | package.json::check |
-| `npm run build` | typecheck then vite build | package.json::build |
+| `npm run check:pre-commit` | generated marketplace types up to date (regenerate + git diff --exit-code src/types/generated/), typecheck, lint | package.json::check |
+| `npm run build` | typecheck, then vite build | package.json::build |
 | `npm run test:coverage` | unit project with coverage, then integration project without coverage | package.json::test |
-| `npm test` | both Vitest projects (unit, integration) | package.json::test |
+| `npm test` | both Vitest projects | package.json::test |
 | `MR pipeline` | external pre-ci-guard template; waits on ci-pipeline and compliance-report contexts defined outside this repository; no-op for targets other than main | .gitlab-ci.yml::wait-ci-init |
 
 ---
@@ -17,27 +17,34 @@ Run order is fastest-to-slowest.
 ### lint
 
 **Run**: `npm run lint`
-**Pass**: exit code 0
-**Fail**: non-zero exit with eslint error lines
+**Pass**: exit 0
+**Fail**: exit 1 with eslint error lines (exit 2 on a configuration error)
 **Auto-fix**: npm run lint:fix
 
 ### typecheck
 
 **Run**: `npm run typecheck`
-**Pass**: exit code 0, no output
+**Pass**: exit 0, no output
 **Fail**: non-zero exit with TS error lines
+
+### license-headers
+
+**Run**: `npm run license-headers:check`
+**Pass**: exit 0
+**Fail**: exit 1 listing files without the header
+**Auto-fix**: npm run license-headers:fix
 
 ### unit-tests
 
 **Run**: `npm run test:unit:slnt`
-**Pass**: exit code 0
-**Fail**: non-zero exit with FAIL lines
+**Pass**: exit 0 and a Test Files summary with no failures
+**Fail**: non-zero exit with FAIL lines; a suite that fails to import adds nothing to the test counter
 **Notes**: A suite that fails to import adds nothing to the counter; quote the Test Files line
 
 ### integration-tests
 
 **Run**: `npm run test:integration:slnt`
-**Pass**: exit code 0
+**Pass**: exit 0
 **Fail**: non-zero exit with FAIL lines
 **Skip if**: Changes are purely in standalone utility functions with no component or store involvement. When in doubt, run anyway.
 **Notes**: Integration tests verify the Component → Store → API flow; fix the implementation or the assertion.
@@ -45,26 +52,26 @@ Run order is fastest-to-slowest.
 ### secrets
 
 **Run**: `npm run secrets:check`
-**Side effects**: pulls the gitleaks image
-**Pass**: exit code 0
-**Fail**: any non-zero gitleaks exit, image pull failure included, prints 'Secrets detected!'; exit 1 when no container engine is found or its daemon is stopped
+**Side effects**: pulls the gitleaks image on first run
+**Pass**: exit 0
+**Fail**: exit 1 with 'No container engine found' when no engine exists, exit 1 with '<engine> daemon is not running' when it is stopped, gitleaks' non-zero exit otherwise (printed as 'Secrets detected!')
 **Notes**: A credential that reached a commit must be rotated. Read the output, not the exit code: the script prints `Secrets detected!` whenever the child exits non-zero, including when the image could not be pulled, and it scans the working tree only, never git history — security/verification.md.
 
 ### license
 
 **Run**: `npm run license-check`
-**Side effects**: Writes nothing to the repository: there is no --out flag, so output goes to stdout. If license-checker is not installed, npx downloads the latest registry version into the npx cache over the network, so the checker version is not pinned. The scan reads the installed node_modules tree, dev dependencies included, not package-lock.json. A stale or partial install therefore checks the wrong tree.
-**Pass**: Exit 0 and a licence summary (licence names with package counts) on stdout. That happens when every scanned package's licence string contains at least one allow-list entry as a substring (license-checker matches with indexOf, not an exact or SPDX match). Exit 0 does not prove the scan worked: a scan error prints 'Found error' and the error to stderr, then still prints the summary and exits 0. Read stderr, not just the exit code.
-**Fail**: Exit 1 at the first package whose licence string contains none of the allow-list entries. stderr then shows `Package "<name@version>" is licensed under "<licence>" which is not permitted by the --onlyAllow flag. Exiting.` Only that first package is reported, and no summary is printed.
+**Side effects**: Writes nothing to the repository: no --out or --files flag, so output goes to stdout (license-checker@25.0.1 bin/license-checker). When license-checker is not installed locally, npx downloads the latest registry version into the npx cache over the network, so the checker version is unpinned. Scans the installed node_modules tree (dev dependencies included), not package-lock.json, so a stale or partial install checks the wrong tree.
+**Pass**: Exit 0 with the licence summary on stdout, when every scanned package (root package and dev dependencies included) has a licence string containing at least one allow-list entry as a substring (license-checker@25.0.1 lib/index.js uses indexOf, not an exact or SPDX match; a multi-licence array matches by exact element). Exit 0 alone does not prove the scan ran: a read error is printed to stderr as 'Found error' plus the error (license-checker@25.0.1 bin/license-checker) and the process still prints the summary and exits 0.
+**Fail**: Exit 1 at the first package whose licence matches no allow-list entry; stderr shows 'Package "<name@version>" is licensed under "<licence>" which is not permitted by the --onlyAllow flag. Exiting.' (license-checker@25.0.1 lib/index.js). Only that first package is reported and no summary is printed.
 **Notes**: Changing the allow list is a decision, not a fix. Behaviour read from license-checker@25.0.1 (unpinned; fetched by npx).
 
 ### sonar
 
 **Run**: `npm run sonar-local`
-**Side effects**: runs the full unit coverage and integration suites, writes the coverage report, uploads analysis for the current branch
-**Pass**: exit code 0 after the scanner's quality gate passes
-**Fail**: exit 1 on any thrown error: missing sonar-project.properties, unresolved branch, coverage run failure, scanner or quality-gate failure (issue details printed)
-**Skip if**: SONAR_TOKEN unset, or the Sonar host unreachable (exit 0 without scanning)
+**Side effects**: runs the unit coverage and integration suites, writes coverage/, uploads the analysis for the current branch to the Sonar host
+**Pass**: exit 0 after 'Sonar scan completed successfully.'
+**Fail**: exit 1 on any thrown error: missing config, unresolved branch, coverage failure, scanner or quality-gate failure
+**Skip if**: SONAR_TOKEN unset, or the Sonar host unreachable (exit 0 without scanning; config and branch are still read first)
 
 ## Pre-commit Gate (Automatic)
 

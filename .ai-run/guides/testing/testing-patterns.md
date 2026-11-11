@@ -4,6 +4,19 @@
 
 ---
 
+## Overview
+
+Vitest 5 runs two projects from `vite.config.ts`: `unit` (Valtio snapshot and the API client mocked) and `integration` (real stores, `fetch` mocked, full route config rendered). Both load `src/setupTests.tsx`; each adds its own setup file. Shared helpers for driving pages and PrimeReact widgets live in `src/test-utils/`.
+
+| Part | What it holds | Start here |
+|---|---|---|
+| `vite.config.ts` | the two test projects, worker cap, fake-timer set, shuffle and coverage | `vite.config.ts::projects` |
+| `src/setupTests.tsx` | global mocks for both projects, including the fetch registry | `src/setupTests.tsx::globalDefaults` |
+| `src/setupTests.unit.ts` | unit-only mocks: api, storage, valtio | `src/setupTests.unit.ts::useSnapshot` |
+| `src/setupTests.integration.ts` | integration-only setup: FeatureGuard bypass, testing-library timeouts | `src/setupTests.integration.ts::FeatureGuard` |
+| `src/test-utils/` | `renderPage`, `mockAPI`, widget interaction helpers and recorded fixtures | `src/test-utils/integration.tsx::mockAPI` |
+| `src/__tests__/` | app-level tests for `App` and the router | `src/__tests__/router.test.tsx::describe` |
+
 ## Test Organization
 
 ### File Location
@@ -35,7 +48,7 @@ Projects config: `test.projects` in `vite.config.ts` — two projects with separ
 ### Setup Files
 
 - **Unit** — loads `setupTests.tsx` + `setupTests.unit.ts` (mocks `useSnapshot` and `@/utils/api`)
-- **Integration** — loads `setupTests.tsx` only (valtio and real fetch are never mocked)
+- **Integration** — loads `setupTests.tsx` + `setupTests.integration.ts`: real Valtio and real stores, `fetch` answered by the global mock in `setupTests.tsx` (`mockAPI` registrations, then `globalDefaults`), and `FeatureGuard` replaced by a pass-through (`src/setupTests.integration.ts::FeatureGuard`)
 
 `SettingsLayout` and `useVueRouter` are mocked globally in `setupTests.tsx`; do not re-mock them in individual test files.
 
@@ -258,26 +271,6 @@ await userEvent.click(within(row).getByTestId('actions-menu'))
 
 ---
 
-## Common Pitfalls
-
-| Symptom | Cause | Fix |
-|---|---|---|
-| Test passes in isolation, fails in suite | Missing `afterEach(cleanup)` | Add `afterEach(cleanup)` |
-| Store returns `null` instead of mocked data | Wrong URL or method in `mockAPI` | Check exact URL + method in store file |
-| `v1/assistants` mock matches `v1/assistants/user` | Prefix match stops at `?`, not `/` | Use exact sub-path in `mockAPI` |
-| GET with params not matching | Params object not passed as 4th arg | `mockAPI('GET', 'url', data, { page: 0 })` |
-| Target page never renders after navigation | `useNavigate` is a spy, not real router | Assert `expect(navigate).toHaveBeenCalledWith(path)` |
-| `NavigationMore` dropdown not found | Dropdown renders asynchronously | Use `await screen.findByRole(...)` or `waitFor` |
-| "proxyState is not iterable" | SettingsLayout pulled into test | Already mocked globally — do not re-mock |
-| `mockRequest` TypeScript error | Old API removed | Replace with `mockAPI` |
-| `TypeError: … is not a constructor`, stderr says "The vi.fn() mock did not use 'function' or 'class'" | The code calls the mock with `new` (`ResizeObserver`, `Response`, a class from a library); Vitest 5 cannot construct an arrow-function implementation | `vi.fn(function () { return { … } })` or a `class`. Pass the implementation to `vi.fn()` itself, not `.mockImplementation()`, so `mockReset()` keeps it |
-| Property `toBeInTheDocument` (or another jest-dom matcher) does not exist on type `Assertion` | jest-dom augments `Assertion<T>`; Vitest 5 declares `Assertion<R, T>`, so that augmentation does not merge | The matchers are added through Vitest's `Matchers` in `src/types/jest-dom-vitest.d.ts`; keep that file |
-| A test with `vi.useFakeTimers()` stops seeing its `requestAnimationFrame` / `performance` stub | Vitest 5 fakes every timer API by default | `vite.config.ts` pins `fakeTimers.toFake` to the timers and `Date` (the Vitest 1 set). To fake more in one test: `vi.useFakeTimers({ toFake: [...] })` |
-| A `vi.fn()` return value set in one test leaks into the next | `vi.restoreAllMocks()` only undoes `vi.spyOn` in Vitest 3+; `clearMocks` (default `true`) clears calls, not implementations | Reset `vi.fn()` state with `vi.resetAllMocks()` or `mock.mockReset()` |
-| Assigning to `import.meta.env` does not compile | Vite 8 turns `import.meta.env` into an expression, and it never reached other modules anyway | `vi.stubEnv('VITE_X', value)` plus `vi.unstubAllEnvs()` in `afterEach` |
-| A test depends on the order of `afterEach` hooks | `vite.config.ts` pins `sequence.hooks: 'parallel'` (Vitest 1 behaviour; Vitest 5 defaults to `'stack'`) | Don't depend on hook order between `setupTests*` and the test file. A request that misses `mockAPI` after the test ended never settles, so it cannot leak `null` into the next test |
-| Test passes alone, crashes an unrelated *later* test with e.g. `ReferenceError: localStorage is not defined` | Page under test has a self-rescheduling `setTimeout`/`setInterval` background poll (e.g. `DataSourcesPage`'s 5s `REFRESH_TIMEOUT`); a request resolving after unmount reschedules a timer nothing clears, which fires after that test's jsdom is torn down | Track real timers created during the test and force-clear them in `afterEach` — do **not** reach for `vi.useFakeTimers()` (it also fakes `waitFor`/`userEvent`'s internal timers and trades one flake for another). Full pattern + code: integration-tester skill's `references/setup.md` → "Background Polling / Self-Rescheduling Timers" |
-
 ## Tests Failing in CI but Passing Locally
 
 When the user reports this or pastes a CI `test:coverage` log:
@@ -295,3 +288,86 @@ When the user reports this or pastes a CI `test:coverage` log:
 The worker cap (`maxWorkers` in `vite.config.ts`), the unit-only coverage pass and the timeout
 are explained in `README.md` § Test workers and timeouts. Do not remove the cap to speed up a
 local run; pass `--maxWorkers` on the command line instead.
+
+## Organization and naming
+
+### Rules
+- R1. Put a test in a `__tests__/` folder beside its source and name an integration test `*.integration.test.tsx` (the `integration` project includes only that pattern and the `unit` project excludes it). Evidence: `vite.config.ts::projects`
+
+## Test shape
+
+### Rules
+- R1. Drive an integration test through `renderPage(path)`, which renders the real route config in a memory router and rethrows a render error instead of showing `ErrorPage`. Evidence: `src/test-utils/integration.tsx::renderPage`
+- R2. Keep each test file independent of every other file (`sequence.shuffle.files` is on, so file order changes between runs). Evidence: `vite.config.ts::shuffle`
+
+### Read first
+| When you are | Exemplar | Why this one | Tests |
+|---|---|---|---|
+| driving a PrimeReact select, multi-select or autocomplete in a test | `src/test-utils/component-interactions/select.ts::openSelectDropdown` | opens the overlay the way a user does and returns the options | exemplar is a test |
+
+## Fixtures and factories
+
+### Rules
+- R1. Take marketplace-management payloads from `src/test-utils/fixtures/marketplace/` and refresh them with `npm run fixtures:refresh`; never edit a fixture JSON or invent a row (the files are recorded backend responses). Evidence: `src/test-utils/fixtures/marketplace/index.ts::overviewFixture`
+
+## Mocking
+
+### Rules
+- R1. Do not re-mock in a test file what `src/setupTests.tsx` mocks for every project: `fetch` defaults, `SettingsLayout`, `useVueRouter`, `@/utils/toaster` and `react-router`'s navigation. Evidence: `src/setupTests.tsx::globalDefaults`
+- R2. In a unit test, treat `useSnapshot` as returning the raw store and `@/utils/api` methods as `vi.fn()` resolving empty JSON; set a response per test on the mocked method (`setupTests.unit.ts` installs both). Evidence: `src/setupTests.unit.ts::useSnapshot`
+
+## Database testing
+
+### Rules
+- R1. Test browser persistence, the app's only store of record on the client, against the mocks the setup installs: `@/utils/storage` is a `vi.fn()` object in unit tests, and `localStorage` is the in-memory `localStorageMock` in both projects. Evidence: `src/setupTests.tsx::localStorageMock`
+
+## API testing
+
+### Rules
+- R1. Register each backend response an integration test needs with `mockAPI(method, url, data, statusOrParams)` before rendering (registrations are keyed by `METHOD:url`; a number fourth argument is the status, an object is the expected query params). Evidence: `src/test-utils/integration.tsx::mockAPI`
+
+## Coverage
+
+### Rules
+- R1. Read coverage from the unit pass: `npm run test:coverage` collects it for `--project unit` only, and `coverage.include` reports every untested `src/**` file at 0 %. Evidence: `vite.config.ts::coverage`
+
+## Examples
+
+### Registering a backend response
+
+Source: `src/test-utils/integration.tsx::mockAPI`
+
+```ts
+export function mockAPI(method: Method, url: string, data: unknown, status?: number): void
+```
+
+### Driving a select in a test
+
+Source: `src/test-utils/component-interactions/select.ts::openSelectDropdown`
+
+```ts
+export async function openSelectDropdown(
+  element: HTMLElement,
+  user?: ReturnType<typeof userEvent.setup>
+): Promise<void> {
+```
+
+## Common pitfalls
+
+| Symptom | Cause | Fix | Evidence |
+|---|---|---|---|
+| A `requestAnimationFrame` or `performance` stub stops working under `vi.useFakeTimers()` | Vitest 5 fakes every timer API by default | the config pins `fakeTimers.toFake` to the timers and `Date`; widen it per test with `vi.useFakeTimers({ toFake: [...] })` | `vite.config.ts::fakeTimers` |
+| A test depends on the order of `afterEach` hooks | `sequence.hooks` is pinned to `parallel` for the integration setup | do not rely on hook order between the setup files and the test file | `vite.config.ts::sequence` |
+| A page renders `ErrorPage` content instead of failing with the real error | React Router turns render exceptions into its error element | render through `renderPage`, whose `onCaughtError` rethrows | `src/test-utils/integration.tsx::renderPage` |
+| jest-dom matchers missing on `Assertion` in type-check | Vitest 5's `Assertion<R, T>` does not merge jest-dom's augmentation | keep the `Matchers` declaration file | `src/types/jest-dom-vitest.d.ts::Matchers` |
+| A test passes alone but a later, unrelated test crashes with `localStorage is not defined` | the page under test keeps a self-rescheduling poll (`DataSourcesPage` refreshes every `REFRESH_TIMEOUT`) whose timer fires after that test's jsdom is gone | track timers created during the test and clear them in `afterEach`; faking timers also fakes `waitFor`'s own timers | `src/pages/dataSources/DataSourcesPage.tsx::REFRESH_TIMEOUT` |
+| `proxyState is not iterable` from the settings layout | `SettingsLayout` reads stores that are not proxies in unit tests | rely on the global mock in `setupTests.tsx`; do not re-mock it | `src/setupTests.tsx::SettingsLayout` |
+| The page after a navigation never renders | `useNavigate` is a spy in both projects | assert the `navigate` call instead of the next page | `src/test-utils/integration.tsx::navigate` |
+
+## Quick reference
+
+| Task | Do | Where |
+|---|---|---|
+| Write an integration test for a page | `mockAPI` each request, then `renderPage('/path')` and query by role | `src/test-utils/integration.tsx::renderPage` |
+| Assert navigation | `expect(navigate).toHaveBeenCalledWith(path)` with the spy from `@/test-utils/integration` | `src/test-utils/integration.tsx::navigate` |
+| Understand worker and timeout settings | read the README section before changing them | `README.md` § Test workers and timeouts |

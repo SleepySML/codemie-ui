@@ -2,6 +2,15 @@
 
 **Last assessed**: 2026-06-08
 
+## Overview
+
+In this repository QA is Vitest unit and integration tests; end-to-end API and UI tests live in an external test repository run through the CodeMie test harness.
+
+| Part | What it holds | Start here |
+|---|---|---|
+| `vite.config.ts` | unit and integration projects | `vite.config.ts::projects` |
+| `src/test-utils/` | integration helpers | `src/test-utils/integration.tsx::renderPage` |
+
 ## Test Frameworks
 
 | Framework | Type | Config file | Test directories |
@@ -138,3 +147,42 @@ a coverage guarantee.
 
 ### External Test Repositories
 - `../codemie-sdk/test-harness` — pytest + Playwright regression suite covering API, UI, workflow, assistant, and integrations against a live environment. Always a sibling directory of this repo.
+
+## Examples
+
+### Rendering a page in a test
+
+Source: `src/test-utils/integration.tsx::renderPage`
+
+```ts
+export const renderPage = (path: string): RenderResult => {
+  const router = createMemoryRouter(routes, { initialEntries: [path] })
+  // React 19 supports onCaughtError at runtime, while some installations resolve
+  // @testing-library/react against older ReactDOM types that declare it as undefined.
+  const renderWithCaughtError = render as unknown as (
+    ui: Parameters<typeof render>[0],
+    options: { onCaughtError: (error: unknown) => void }
+  ) => RenderResult
+
+  return renderWithCaughtError(<RouterProvider router={router} />, {
+    // React Router converts render exceptions into its ErrorPage. In a test this hides
+    // the original stack and makes every subsequent waitFor fail with a huge fallback
+    // DOM dump. Fail immediately with the actual cause instead.
+    onCaughtError: (error) => {
+      throw error
+    },
+  })
+}
+```
+
+## Common pitfalls
+
+| Symptom | Cause | Fix | Evidence |
+|---|---|---|---|
+| Coverage shows untested files at 0 % | `coverage.include` reports all of `src/**` | read it as the untested list | `vite.config.ts::coverage` |
+
+## Quick reference
+
+| Task | Do | Where |
+|---|---|---|
+| Run all tests | `npm test` | `package.json::test` |

@@ -4,6 +4,17 @@
 
 ---
 
+## Overview
+
+`src/constants/` holds named values per domain: route ids, feature-flag keys, statuses, limits. `index.ts` defines the shared values and enums and re-exports `INDEX_TYPES` and `FEATURE_FLAGS`; every other constant is imported from its own file.
+
+| Part | What it holds | Start here |
+|---|---|---|
+| `src/constants/index.ts` | shared values and enums | `src/constants/index.ts::AssistantTab` |
+| `src/constants/routes.ts` | route ids | `src/constants/routes.ts::ASSISTANT_DETAILS` |
+| `src/constants/featureFlags.ts` | feature flag keys | `src/constants/featureFlags.ts::FEATURE_FLAGS` |
+| `src/constants/workflows.ts` | workflow statuses and formats | `src/constants/workflows.ts::WORKFLOW_STATUSES` |
+
 ## When to Extract
 
 | Extract when... | Skip when... |
@@ -22,11 +33,13 @@
 Use TypeScript `enum` for a closed set of related values that map to strings:
 
 ```typescript
-// src/constants/assistantTypes.ts
+// src/constants/index.ts
 export enum AssistantTab {
   ALL = 'all',
-  PROJECT = 'project',
+  USER = 'user',
+  TEMPLATES = 'templates',
   MARKETPLACE = 'marketplace',
+  FAVORITES = 'favorites',
 }
 ```
 
@@ -37,82 +50,30 @@ Use enum members as values directly — no raw strings in JSX or logic.
 Use `as const` to lock down the type to literal values:
 
 ```typescript
-// src/constants/pagination.ts
-export const PAGINATION = {
-  DEFAULT_PAGE_SIZE: 20,
-  PAGE_SIZE_OPTIONS: [10, 20, 50, 100],
-  MAX_PAGE_SIZE: 100,
+// src/constants/index.ts
+export const ENV = {
+  LOCAL: 'local',
+  PROD: 'prod',
 } as const
 ```
 
-`as const` narrows the type from `number` to the exact literal value (e.g. `20`), enabling exhaustive checks.
+`as const` narrows the type from `string` to the exact literal value (e.g. `'local'`), enabling exhaustive checks.
 
-### Function-based endpoints
+### Endpoints
 
-Endpoint constants that accept parameters use functions to avoid string interpolation at call sites:
-
-```typescript
-// src/constants/endpoints.ts
-export const API_ENDPOINTS = {
-  ASSISTANTS: 'assistants',
-  ASSISTANT_BY_ID: (id: string) => `assistants/${id}`,
-  WORKFLOW_EXECUTE: (id: string) => `workflows/${id}/execute`,
-} as const
-```
-
-Usage: `api.get(API_ENDPOINTS.ASSISTANT_BY_ID(id))` — never construct endpoint strings inline.
+There is no endpoint-constants module: a store builds its URL inline next to the call (`src/store/skills.ts::skillsStore.getSkillById` uses a `v1/skills/${id}` template literal).
 
 See also: `.ai-run/guides/patterns/accessibility-patterns.md` § Cross-component ARIA id sharing — `src/utils/ariaIds.ts` is a constants-adjacent module of narrowly-named id-builder functions, not a generic keyed lookup.
 
 ### Status label/color maps
 
-Pair an enum with display maps to avoid `if/else` chains:
-
-```typescript
-// src/constants/workflowStatus.ts
-export enum WorkflowStatus { DRAFT = 'draft', PUBLISHED = 'published' }
-
-export const WORKFLOW_STATUS_LABELS = {
-  [WorkflowStatus.DRAFT]: 'Draft',
-  [WorkflowStatus.PUBLISHED]: 'Published',
-} as const
-
-export const WORKFLOW_STATUS_COLORS = {
-  [WorkflowStatus.DRAFT]: 'bg-gray-100 text-gray-800',
-  [WorkflowStatus.PUBLISHED]: 'bg-green-100 text-green-800',
-} as const
-```
-
-Usage: `<span className={WORKFLOW_STATUS_COLORS[status]}>{WORKFLOW_STATUS_LABELS[status]}</span>`
+Pair a status map with the list of terminal statuses instead of `if/else` chains, as `src/constants/workflows.ts::WORKFLOW_STATUSES` and `WORKFLOW_FINAL_STATUSES` do.
 
 ---
 
 ## File Organization
 
-```
-src/constants/
-├── index.ts             # barrel re-export
-├── assistantTypes.ts    # AssistantTab, AssistantType enums
-├── workflowStatus.ts    # WorkflowStatus enum + label/color maps
-├── routes.ts            # ROUTES object
-├── endpoints.ts         # API_ENDPOINTS object
-├── pagination.ts        # PAGINATION config
-├── validationRules.ts   # VALIDATION_RULES limits
-├── timeouts.ts          # TIMEOUTS (debounce, toast, polling)
-├── sizes.ts             # SIZES (file size, sidebar width)
-└── featureFlags.ts      # FEATURE_FLAGS
-```
-
-**Barrel export** (`src/constants/index.ts`):
-```typescript
-export * from './assistantTypes'
-export * from './workflowStatus'
-export * from './routes'
-export * from './endpoints'
-export * from './pagination'
-```
-
-Import from the barrel: `import { AssistantTab, ROUTES, PAGINATION } from '@/constants'`
+`src/constants/` holds one file per domain (`assistants.ts`, `dataSources.ts`, `routes.ts`, `featureFlags.ts`, `workflows.ts` and others). `src/constants/index.ts` defines the shared values itself and re-exports only `INDEX_TYPES` and `FEATURE_FLAGS`; import a domain constant from its own file, as most callers do (`import { ASSISTANT_DETAILS } from '@/constants/routes'`).
 
 ---
 
@@ -122,16 +83,14 @@ Import from the barrel: `import { AssistantTab, ROUTES, PAGINATION } from '@/con
 |------|-----------|---------|
 | Enum | PascalCase | `AssistantTab` |
 | Enum member | UPPER_SNAKE_CASE | `AssistantTab.ALL` |
-| Const object | UPPER_SNAKE_CASE | `PAGINATION` |
-| Helper function in constants | camelCase | `isLocalAssistant` |
+| Const object | UPPER_SNAKE_CASE | `ENV` |
+| Helper function in constants | camelCase | `isLiveMarketplaceStatus` |
 
 **Descriptive names — no abbreviations:**
 
 | Bad | Good |
 |-----|------|
 | `MAX_LEN` | `MAX_ASSISTANT_NAME_LENGTH` |
-| `TIMEOUT` | `TIMEOUTS.API_REQUEST` |
-| `RETRIES` | `API_RETRY_ATTEMPTS` |
 
 ---
 
@@ -199,17 +158,7 @@ type StatusColor = typeof STATUS_COLORS[keyof typeof STATUS_COLORS]
 
 ## Integration with Other Layers
 
-### Forms (Yup schemas)
-
-`src/pages/assistants/components/AssistantForm/AssistantForm.tsx` — import `VALIDATION_RULES` and `AssistantType` from `@/constants` to build the Yup schema. Never hardcode length limits in the schema file.
-
-### Routing
-
-`src/pages/assistants/utils/getAssistantLink.tsx` — import `ROUTES` for all path strings. Never write raw path strings in `navigate()` calls.
-
-### API calls (stores)
-
-`src/store/assistants.ts` — import `API_ENDPOINTS` and `TIMEOUTS`. Use `TIMEOUTS.API_REQUEST` for abort controller timeouts.
+Route ids from `src/constants/routes.ts` name the route objects in `src/router.tsx` and the allowed targets of `navigateBack` (`src/utils/helpers.ts::navigateBack`); feature flag keys from `src/constants/featureFlags.ts` feed `FeatureGuard` and `useFeatureFlag`.
 
 ---
 
@@ -217,11 +166,7 @@ type StatusColor = typeof STATUS_COLORS[keyof typeof STATUS_COLORS]
 
 | DON'T | DO |
 |-------|----|
-| `if (name.length < 3)` | `if (name.length < VALIDATION_RULES.ASSISTANT_NAME.MIN_LENGTH)` |
-| `navigate('/assistants')` | `navigate(ROUTES.ASSISTANTS)` |
-| `api.get('assistants')` | `api.get(API_ENDPOINTS.ASSISTANTS)` |
-| `debounce(fn, 300)` | `debounce(fn, TIMEOUTS.DEBOUNCE_INPUT)` |
-| `status === 'published'` | `status === WorkflowStatus.PUBLISHED` |
+| `status === 'Succeeded'` | `status === WORKFLOW_STATUSES.SUCCEEDED` |
 | Scatter magic numbers in components | Extract to `src/constants/` file |
 | Export constants from component files | Put in `src/constants/` and barrel-export |
 
@@ -241,12 +186,30 @@ export const WORKFLOW_POLL_INTERVAL = 2000
 
 ---
 
-## Common Pitfalls
+## Examples
 
-| Problem | Fix |
-|---------|-----|
-| Constant object widens to `string` | Add `as const` |
-| Same value defined in two files | Create single source in `src/constants/` |
-| Magic number with no context | Name it descriptively, add JSDoc if needed |
-| Over-abstraction of obvious values | Only extract if value has real business meaning |
-| Importing from deep path | Always import from `@/constants` barrel |
+### A status map with its terminal set
+
+Source: `src/constants/workflows.ts::WORKFLOW_FINAL_STATUSES`
+
+```ts
+export const WORKFLOW_FINAL_STATUSES = [
+  WORKFLOW_STATUSES.SUCCEEDED,
+  WORKFLOW_STATUSES.ABORTED,
+  WORKFLOW_STATUSES.FAILED,
+  WORKFLOW_STATUSES.INTERRUPTED,
+  WORKFLOW_STATUSES.AUTHENTICATION_REQUIRED,
+]
+```
+
+## Common pitfalls
+
+| Symptom | Cause | Fix | Evidence |
+|---|---|---|---|
+| A constant imported from `@/constants` is undefined | the barrel re-exports only `INDEX_TYPES` and `FEATURE_FLAGS` from other files | import it from its own file | `src/constants/index.ts::INDEX_TYPES` |
+
+## Quick reference
+
+| Task | Do | Where |
+|---|---|---|
+| Add a route id | export a string constant from `src/constants/routes.ts` | `src/constants/routes.ts::ASSISTANT_DETAILS` |

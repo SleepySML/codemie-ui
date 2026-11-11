@@ -4,6 +4,15 @@
 
 ---
 
+## Overview
+
+Onboarding flows are configuration objects under `src/configs/onboarding/`, re-exported by its `index.ts` and run by the provider in `src/components/Onboarding/`.
+
+| Part | What it holds | Start here |
+|---|---|---|
+| `src/configs/onboarding/` | flow definitions | `src/configs/onboarding/index.ts::navigationIntroductionFlow` |
+| `src/components/Onboarding/` | tour provider and step rendering | `src/components/Onboarding/index.ts::OnboardingProvider` |
+
 ## Key Source Files
 
 | File | Purpose |
@@ -344,3 +353,25 @@ No assistants yet — create your first one...
 **Completion**
 - [ ] Completion modal summarises learnings with ✓ bullets
 - [ ] 3–4 next-flow suggestions with emoji, title, description, duration
+
+## Examples
+
+### Flow re-exports
+
+Source: `src/configs/onboarding/index.ts::dataSourceListFlow`
+
+```ts
+export { dataSourceListFlow } from './dataSourceList'
+```
+
+## Common pitfalls
+
+| Symptom | Cause | Fix | Evidence |
+|---|---|---|---|
+| A new flow never appears | it is not re-exported from the folder index | add it to `src/configs/onboarding/index.ts` | `src/configs/onboarding/index.ts::firstIntegrationFlow` |
+
+## Quick reference
+
+| Task | Do | Where |
+|---|---|---|
+| Add a flow | create `src/configs/onboarding/<name>.ts` and re-export it | `src/configs/onboarding/index.ts::navigationIntroductionFlow` |

@@ -4,6 +4,15 @@
 
 ---
 
+## Overview
+
+Re-render cost comes from `useSnapshot` subscriptions and long lists; the chat sidebar virtualizes its rows with `@tanstack/react-virtual`, and route pages are imported by `src/router.tsx`.
+
+| Part | What it holds | Start here |
+|---|---|---|
+| `src/pages/chat/components/ChatSidebar/ChatList/` | virtualized chat list | `src/pages/chat/components/ChatSidebar/ChatList/useSidebarVirtualList.ts::useSidebarVirtualList` |
+| `src/hooks/useDebounceApply.ts` | debounced apply for inputs | `src/hooks/useDebounceApply.ts::useDebouncedApply` |
+
 ## Guiding Principles
 
 1. **Measure first** — profile before optimizing with React DevTools Profiler.
@@ -142,19 +151,9 @@ assistantsStore.error = null        // re-render
 assistantsStore.assistants = data   // re-render
 ```
 
-### Derived state with `valtio/utils`
+### Derived values
 
-Use `derive` for computed values that should only trigger re-renders when the derived value changes:
-
-```typescript
-import { derive } from 'valtio/utils'
-export const derivedStore = derive({
-  activeAssistants: (get) => get(assistantsStore).assistants.filter(a => a.status === 'active'),
-  assistantCount:   (get) => get(assistantsStore).assistants.length,
-})
-```
-
-Components subscribe to `derivedStore` fields — they re-render only when the derived value changes, not on unrelated store mutations.
+`valtio/utils` `derive` is not used in this repository; compute a derived value from the snapshot inside the component, with `useMemo` when the computation is expensive.
 
 ---
 
@@ -170,12 +169,7 @@ Components subscribe to `derivedStore` fields — they re-render only when the d
 
 ### Virtual scrolling (1000+ items)
 
-Use `react-window` `FixedSizeList` for large datasets. Never render thousands of DOM nodes unconditionally.
-
-```tsx
-import { FixedSizeList } from 'react-window'
-// height={600} itemCount={items.length} itemSize={50}
-```
+Virtualize a long list with `@tanstack/react-virtual`'s `useVirtualizer`, as the chat sidebar does (`src/pages/chat/components/ChatSidebar/ChatList/useSidebarVirtualList.ts::useSidebarVirtualList`); `react-window` is not a dependency.
 
 ### Conditional rendering vs CSS hide
 
@@ -261,7 +255,30 @@ For identical concurrent requests, cache the in-flight `Promise` and return it t
 | `useCallback` for all handlers | `useCallback` only for props to memoized children |
 | Import entire page at startup | `lazy()` all route-level components |
 | `key={Math.random()}` | `key={item.id}` |
-| Render 10 000 items directly | `FixedSizeList` from `react-window` |
+| Render 10 000 items directly | `useVirtualizer` from `@tanstack/react-virtual` |
 | `useSnapshot(entireStore)` | Destructure only used fields |
 | Three separate store mutations | Batch in one function call |
 | Fetch all records | Paginate with `PAGINATION.DEFAULT_PAGE_SIZE` |
+
+## Examples
+
+### Measuring a row with its margin
+
+Source: `src/pages/chat/components/ChatSidebar/ChatList/useSidebarVirtualList.ts::getRootFontSizePx`
+
+```ts
+export const getRootFontSizePx = () =>
+  parseFloat(getComputedStyle(document.documentElement).fontSize) || 16
+```
+
+## Common pitfalls
+
+| Symptom | Cause | Fix | Evidence |
+|---|---|---|---|
+| Virtualized rows overlap or leave gaps | `getBoundingClientRect` excludes margins | measure with the margin, as `measureWithMargin` does | `src/pages/chat/components/ChatSidebar/ChatList/useSidebarVirtualList.ts::useSidebarVirtualList` |
+
+## Quick reference
+
+| Task | Do | Where |
+|---|---|---|
+| Virtualize a long list | use `useVirtualizer` from `@tanstack/react-virtual` | `src/pages/chat/components/ChatSidebar/ChatList/useSidebarVirtualList.ts::useSidebarVirtualList` |

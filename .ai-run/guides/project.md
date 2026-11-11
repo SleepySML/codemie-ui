@@ -30,7 +30,7 @@
 | Field | Value |
 |---|---|
 | Provider | GitLab |
-| Repository remote | `git remote -v` |
+| Repository remote | git@gitbud.epam.com:epm-cdme/codemie-ui.git |
 | Default target branch | main |
 | Review artifact type | MR |
 

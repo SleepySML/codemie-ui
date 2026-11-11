@@ -4,26 +4,35 @@
 
 ---
 
+## Overview
+
+The workflow editor renders a React Flow canvas from `src/pages/workflows/editor/` and keeps every graph mutation in `src/utils/workflowEditor/`: `actions/` change states and connections, `build/` turns a configuration into nodes and edges and lays them out, `serialization/` converts between the YAML the backend stores and the editor model, and `helpers/` validate connections and iterators.
+
+| Part | What it holds | Start here |
+|---|---|---|
+| `src/utils/workflowEditor/actions/` | state, connection and iterator mutations | `src/utils/workflowEditor/actions/connections/createConnection.ts::createConnectionAction` |
+| `src/utils/workflowEditor/build/` | nodes, edges and dagre layout | `src/utils/workflowEditor/build/layout.ts::applyLayout` |
+| `src/utils/workflowEditor/serialization/` | YAML to model and back | `src/utils/workflowEditor/serialization/serializer.ts::serialize` |
+| `src/utils/workflowEditor/helpers/` | connection validation and node helpers | `src/utils/workflowEditor/helpers/connections/connectionValidator.ts::isValidConnection` |
+| `src/pages/workflows/editor/` | canvas components | `src/pages/workflows/editor/WorkflowEditor.tsx::WorkflowEditor` |
+
 ## Architecture Overview
 
 The editor separates **UI components** from **editor logic** strictly. Components render; utils mutate state.
 
 ```
 src/pages/workflows/
-├── EditWorkflowPage.tsx          # Main editor entry point
-├── ViewWorkflowPage.tsx          # Read-only canvas
-├── WorkflowExecutionPage.tsx     # Execution details
-└── components/
-    ├── WorkflowCanvas/           # React Flow canvas wrapper
-    ├── NodeTypes/                # Custom node components (UI only)
-    ├── Toolbar/                  # Editor toolbar
-    └── Forms/                    # State configuration forms
+├── EditWorkflowPage.tsx          # editor entry point (NewWorkflowPage.tsx for a new one)
+├── WorkflowDetailsPage.tsx       # read-only view and executions
+├── editor/                       # canvas: WorkflowEditor.tsx, ConfigPanel, Sidebar, IssuesPanel
+├── details/                      # execution views, node panels, state forms
+└── components/                   # list, form, version-history and marketplace popups
 
 src/utils/workflowEditor/         # All editor logic (outside pages/)
 ├── actions/
-│   ├── nodes/                    # createState, updateState, deleteState
+│   ├── nodes/                    # handleIteratorDrop
 │   ├── connections/              # createConnection, deleteConnection
-│   ├── states/                   # state CRUD helpers
+│   ├── states/                   # createState, updateState, removeState, duplicateState, make(Non)Iterable
 │   └── config/                   # config update helpers
 ├── build/
 │   ├── nodes/                    # node builders
@@ -134,13 +143,13 @@ Always remove connected edges before removing the node:
 
 `src/utils/workflowEditor/helpers/connections/connectionValidator.ts`
 
-| Rule | Error message |
+| Constant in `ERROR_MSGS` | Error message |
 |------|---------------|
-| `sourceId === targetId` | 'Cannot connect state to itself' |
-| Would create cycle | 'Cannot create circular connections' |
-| Source has reached max connections | 'Maximum connections reached' |
+| `SELF_LOOP` | 'Cannot connect a node to itself' |
+| `CIRCULAR_CONNECTION` | 'Cannot create circular connection: target node already connects back to source' |
+| `ITERATOR_MULTIPLE_PARENTS` | 'Cannot connect to a node that is in an iterator and already has a parent' |
 
-The graph must remain a DAG — run `wouldCreateCycle()` before accepting any connection.
+`isValidConnection` (`src/utils/workflowEditor/helpers/connections/connectionValidator.ts::isValidConnection`) applies these and the node-type rules before a connection is accepted.
 
 ---
 
@@ -157,9 +166,7 @@ The graph must remain a DAG — run `wouldCreateCycle()` before accepting any co
 
 `src/utils/workflowEditor/serialization/serializer.ts`
 
-- Map each `Node` to a `WorkflowState`: spread `node.data.state`, add `position: node.position`.
-- Build a `transitionMap` from edges: `Map<sourceId, Record<handle, targetId>>`.
-- Assign `state.transitions = transitionMap.get(state.id) ?? {}` for each state.
+`serialize(configuration)` turns the `WorkflowConfiguration` into the YAML string the backend stores: it splits the states into `states`, `orphaned_states` and `meta_states` and writes them with `yaml.dump` (`src/utils/workflowEditor/serialization/serializer.ts::serialize`).
 
 **Always include `position` in serialization** — omitting it loses manual layout on reload.
 
@@ -169,24 +176,7 @@ The graph must remain a DAG — run `wouldCreateCycle()` before accepting any co
 
 `src/utils/workflowEditor/build/layout.ts`
 
-```typescript
-import dagre from 'dagre'
-
-export const autoLayout = (nodes: Node[], edges: Edge[]) => {
-  const graph = new dagre.graphlib.Graph()
-  graph.setGraph({ rankdir: 'TB' })
-  graph.setDefaultEdgeLabel(() => ({}))
-  nodes.forEach(n => graph.setNode(n.id, { width: NODE_WIDTH, height: NODE_HEIGHT }))
-  edges.forEach(e => graph.setEdge(e.source, e.target))
-  dagre.layout(graph)
-  return nodes.map(n => {
-    const pos = graph.node(n.id)
-    return { ...n, position: { x: pos.x - NODE_WIDTH / 2, y: pos.y - NODE_HEIGHT / 2 } }
-  })
-}
-```
-
-`rankdir: 'TB'` = top-to-bottom flow. Call `autoLayout` on initial load and after bulk node additions. Subtract half node dimensions to center the dagre position anchor.
+`applyLayout(nodes, edges)` lays the graph out with dagre, left to right (`rankdir: 'LR'`); it skips iterator and note nodes, lays iterator children out as top-level nodes, then fits each iterator around its children and converts their positions back to relative (`src/utils/workflowEditor/build/layout.ts::applyLayout`). There is no `autoLayout` export.
 
 ---
 
@@ -213,19 +203,6 @@ Obtain `reactFlowInstance` via the `useReactFlow()` hook inside a component wrap
 
 ---
 
-## Common Pitfalls
-
-| Problem | Fix |
-|---------|-----|
-| Node positions lost on save/reload | Always include `position` in serializer |
-| Edges remain after node delete | Remove connected edges first in `deleteState` |
-| Circular connections allowed | Run `wouldCreateCycle()` in `validateConnection` |
-| Iterator children escape parent | Set `extent: 'parent'` on child nodes |
-| Stale node data after config update | Create new `node.data` reference on update |
-| Expensive edge build on every render | Wrap with `useMemo` keyed on `workflow.states` |
-
----
-
 ## Testing Strategy
 
 Test logic utilities — not the React Flow canvas itself:
@@ -244,3 +221,29 @@ describe('createState', () => {
 ```
 
 Test `validateConnection`, `serializeWorkflow`, `deserializeWorkflow`, and `autoLayout` as pure functions with no DOM dependency.
+
+## Examples
+
+### Laying out the graph
+
+Source: `src/utils/workflowEditor/build/layout.ts::applyLayout`
+
+```ts
+export const applyLayout = (
+  nodes: WorkflowNode[],
+  edges: WorkflowEdge[]
+): WorkflowNode[] => {
+```
+
+## Common pitfalls
+
+| Symptom | Cause | Fix | Evidence |
+|---|---|---|---|
+| A connection is refused with a circular-connection message | the target already connects back to the source | connect in the other direction or remove the back edge | `src/utils/workflowEditor/helpers/connections/connectionValidator.ts::isValidConnection` |
+| Iterator children jump after layout | layout runs on absolute positions | let `applyLayout` convert child positions back to relative | `src/utils/workflowEditor/build/layout.ts::applyLayout` |
+
+## Quick reference
+
+| Task | Do | Where |
+|---|---|---|
+| Change what is written to the backend | edit `serialize` and its tests | `src/utils/workflowEditor/serialization/serializer.ts::serialize` |

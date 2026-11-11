@@ -1,5 +1,14 @@
 # Custom Hooks — Factory Guide
 
+## Overview
+
+Reusable React logic lives in `src/hooks/` (`use<Name>.ts`), app-wide hooks mounted once by `App` in `src/hooks/appLevel/`, and test doubles in `src/hooks/__mocks__/`. Feature flag hooks return `[isEnabled, isLoaded]`.
+
+| Part | What it holds | Start here |
+|---|---|---|
+| `src/hooks/` | shared hooks | `src/hooks/useFeatureFlags.ts::useFeatureFlag` |
+| `src/hooks/appLevel/` | hooks App mounts once | `src/hooks/appLevel/useHistoryStack.tsx::history` |
+
 ## When to Extract a Hook
 
 | Trigger | Action |
@@ -222,3 +231,43 @@ Split by concern; compose in the parent hook if needed.
 - [ ] TypeScript types on params and return
 - [ ] Single responsibility — no hook doing 3+ unrelated things
 - [ ] Global hooks in `src/hooks/`; component-specific co-located with component
+
+## Examples
+
+### A small effect hook
+
+Source: `src/hooks/useEscapeKey.ts::useEscapeKey`
+
+```ts
+export const useEscapeKey = (onEscape: () => void, isActive = true) => {
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onEscape()
+      }
+    }
+
+    if (isActive) {
+      window.addEventListener('keydown', handleEscape)
+    }
+
+    return () => {
+      if (isActive) {
+        window.removeEventListener('keydown', handleEscape)
+      }
+    }
+  }, [onEscape, isActive])
+}
+```
+
+## Common pitfalls
+
+| Symptom | Cause | Fix | Evidence |
+|---|---|---|---|
+| A flagged feature flashes off then on | the component acted on `isEnabled` before `isLoaded` | wait for the second tuple value | `src/hooks/useFeatureFlags.ts::useFeatureFlag` |
+
+## Quick reference
+
+| Task | Do | Where |
+|---|---|---|
+| Read a feature flag in a component | `const [enabled, loaded] = useFeatureFlag(FEATURE_FLAGS.X)` | `src/hooks/useFeatureFlags.ts::useFeatureFlag` |

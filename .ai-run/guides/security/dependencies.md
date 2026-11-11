@@ -6,6 +6,15 @@ moves each one.
 Lock-file discipline — minimal manifest edit, targeted relock, never a wholesale regeneration — is
 owned by `secops:container-cve-fix`. Below is how that applies to this repository.
 
+## Overview
+
+Dependencies are pinned in `package.json`; transitive fixes go into `overrides`, two of which re-point to the direct versions (`axios`, `dompurify`). `npm run license-check` enforces the licence allow list.
+
+| Part | What it holds | Start here |
+|---|---|---|
+| `package.json` | dependencies, overrides and licence allow list | `package.json::overrides` |
+| `package-lock.json` | the resolved tree | `package-lock.json::lockfileVersion` |
+
 ## Which surface
 
 Match on where the package is *installed*, not on its name.
@@ -104,3 +113,25 @@ footprint. Prefer an `overrides` pin on what is already there.
   inside the repository and fails outside it; add `--ignore-scripts` when resolving in a scratch copy.
 - `npm run typecheck` reporting `TS2307: Cannot find module` for a package present in both the
   manifest and the lock means the install is behind. Run `npm ci`, then re-check.
+
+## Examples
+
+### The licence check command
+
+Source: `package.json::license-check`
+
+```
+    "license-check": "npx license-checker --summary --onlyAllow 'MIT;Apache-2.0;ISC;BSD-2-Clause;BSD-3-Clause;0BSD;CC0-1.0;Unlicense;BlueOak-1.0.0;Python-2.0;CC-BY-4.0;Apache*;(MIT OR CC0-1.0);MulanPSL-2.0;MPL-2.0;LGPL-3.0-only;UNLICENSED'",
+```
+
+## Common pitfalls
+
+| Symptom | Cause | Fix | Evidence |
+|---|---|---|---|
+| `license-check` passes on a stale tree | it scans installed `node_modules`, not the lock file | reinstall from the lock file first | `package.json::license-check` |
+
+## Quick reference
+
+| Task | Do | Where |
+|---|---|---|
+| Pin a transitive package | add it to `overrides` and reinstall | `package.json::overrides` |

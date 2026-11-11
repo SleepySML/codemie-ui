@@ -7,6 +7,17 @@ Rebuild-and-rescan as the verification predicate for a container CVE is owned by
 `secops:container-cve-fix` and `secops:trivy-scan`. The MR pipeline builds the images and lints the
 Dockerfiles; no task in it scans an image for CVEs.
 
+## Overview
+
+Three images are built here: the runtime nginx image from a prebuilt `dist/` (`Dockerfile`), the multistage build that compiles the app (`multistage.Dockerfile`), and the Keycloak theme image (`multistage.kc-theme.Dockerfile`).
+
+| Part | What it holds | Start here |
+|---|---|---|
+| `Dockerfile` | nginx runtime over a prebuilt dist/ | `Dockerfile::FROM` |
+| `multistage.Dockerfile` | node build then nginx runtime | `multistage.Dockerfile::FROM` |
+| `multistage.kc-theme.Dockerfile` | Keycloak theme build | `multistage.kc-theme.Dockerfile::FROM` |
+| `nginx.conf` | server config shipped in the image | `nginx.conf::server` |
+
 ## Dockerfile lint runs in CI only
 
 `multistage.kc-theme.Dockerfile` carries `# hadolint ignore=` annotations while the repository has
@@ -112,3 +123,25 @@ Verify the named CVE is absent. A shorter findings list is not proof that the na
   `grep -n '^FROM' $(git ls-files '*Dockerfile*')`. A finding against one does not imply the other.
 - A merged fix is not a deployed fix. `deploy-templates/values.yaml` leaves `image.tag` empty, so
   the chart falls back to `.Chart.AppVersion`; until that moves, the patched image is not what runs.
+
+## Examples
+
+### Runtime base image
+
+Source: `Dockerfile::FROM`
+
+```
+FROM dhi.io/nginx:1.30-alpine3.23-dev
+```
+
+## Common pitfalls
+
+| Symptom | Cause | Fix | Evidence |
+|---|---|---|---|
+| The two nginx-based Dockerfiles disagree on the nginx tag | `Dockerfile` and `multistage.Dockerfile` pin different tags | check both when bumping | `multistage.Dockerfile::FROM` |
+
+## Quick reference
+
+| Task | Do | Where |
+|---|---|---|
+| Build the images | see the Docker section of the README | `README.md` § Docker Support |

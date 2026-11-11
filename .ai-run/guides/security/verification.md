@@ -2,6 +2,15 @@
 
 Index: [`README.md`](README.md). Owns what each gate covers and how to read its output.
 
+## Overview
+
+Verifying a security fix means reinstalling from the lock file and running the local gates one by one: type-check, lint, the two test projects, the licence check and the secrets scan.
+
+| Part | What it holds | Start here |
+|---|---|---|
+| `package.json` | gate scripts | `package.json::typecheck` |
+| `vite.config.ts` | test projects | `vite.config.ts::projects` |
+
 ## 1. `npm ci` before any gate
 
 A stale `node_modules` surfaces as import errors. Vitest reports those as failed test *files* while
@@ -88,3 +97,34 @@ it does not exercise the diff. State which of the two is being claimed.
 [`../standards/git-workflow.md`](../standards/git-workflow.md) requires the `--sanity-ui` console
 log. Until an owner reconciles them, satisfy both: paste the log, add a screenshot for any
 user-visible change.
+
+## Examples
+
+### Secrets gate exit path
+
+Source: `scripts/validate-secrets.mjs::detectEngine`
+
+```js
+function detectEngine() {
+  for (const engine of ['docker', 'podman']) {
+    if (commandExists(engine) && daemonRunning(engine)) return engine
+  }
+  if (appleContainersRunning()) return 'container'
+  for (const engine of ['docker', 'podman']) {
+    if (commandExists(engine)) return engine
+  }
+  return null
+}
+```
+
+## Common pitfalls
+
+| Symptom | Cause | Fix | Evidence |
+|---|---|---|---|
+| A gate reported green although it never ran | no container engine, no `SONAR_TOKEN`, or an import failure that adds nothing to the test count | quote the gate's own output, not only its exit code | `scripts/sonar/run-local-sonar.mjs::main` |
+
+## Quick reference
+
+| Task | Do | Where |
+|---|---|---|
+| Run the unit tests quietly | `npm run test:unit:slnt` | `package.json::test` |

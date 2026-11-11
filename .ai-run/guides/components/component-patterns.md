@@ -4,6 +4,16 @@ React 18.3.1 / TypeScript 5.8.3 / Tailwind CSS / PrimeReact 10.9.x
 
 ---
 
+## Overview
+
+Components are function components typed with `FC` or `React.FC`, read shared state with `useSnapshot`, style with Tailwind classes and take PrimeReact widgets through the project wrappers. App-wide components are mounted once by `App` or, when the auth routes need them too, by `src/main.tsx`.
+
+| Part | What it holds | Start here |
+|---|---|---|
+| `src/App.tsx` | app shell: providers, navigation, app-level popups | `src/App.tsx::App` |
+| `src/main.tsx` | bootstrap: theme watcher, global tooltip, announcer above the router | `src/main.tsx::AnnouncerHostProvider` |
+| `src/components/appLevel/` | components mounted once by App | `src/components/appLevel/AutoPopupManager.tsx::AutoPopupManager` |
+
 ## 1. Component Structure
 
 Every component follows this internal ordering:
@@ -235,3 +245,30 @@ Avoid:
 - [ ] Default export present
 - [ ] Interactive elements have accessible labels or visible text
 - [ ] Single quotes throughout — no double quotes
+
+## Examples
+
+### A guard component
+
+Source: `src/components/CoreGuard.tsx::CoreGuard`
+
+```ts
+export const CoreGuard: FC<{ children: ReactNode }> = ({ children }) => {
+  const { configs } = useSnapshot(appInfoStore)
+  if (!isCoreAvailable(configs)) throw notFoundError()
+  return children
+}
+```
+
+## Common pitfalls
+
+| Symptom | Cause | Fix | Evidence |
+|---|---|---|---|
+| Clicking inside the main area stops arrow-key scrolling | a permanent `tabindex` on `<main>` | set `tabindex=-1` only for the skip-link focus and remove it on blur | `src/components/SkipLink/SkipLink.tsx::SkipLink` |
+| A page flashes or a guard 404s before the user is loaded | rendering outlet content before `user` and `isConfigFetched` | App renders the outlet only after both; keep page content under it | `src/App.tsx::App` |
+
+## Quick reference
+
+| Task | Do | Where |
+|---|---|---|
+| Add an app-wide popup | mount it in `App` under `user &&`, or route it through `AutoPopupManager` for priority | `src/components/appLevel/AutoPopupManager.tsx::AutoPopupManager` |

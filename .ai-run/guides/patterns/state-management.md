@@ -1,5 +1,15 @@
 # State Management — Factory Guide
 
+## Overview
+
+Shared state lives in Valtio proxies under `src/store/`, one module per domain; components read them with `useSnapshot` and call their async methods, which call `api` and write results back to the proxy. DTO mapping and response-shape helpers sit in `src/store/utils/`.
+
+| Part | What it holds | Start here |
+|---|---|---|
+| `src/store/` | one Valtio store per domain | `src/store/skills.ts::skillsStore` |
+| `src/store/utils/` | DTO transforms and response-shape helpers used by stores | `src/store/utils/parseApiResponse.ts::extractArrayFromResponse` |
+| `src/store/index.ts` | re-exports of the most used stores | `src/store/index.ts::premiumModelTipStore` |
+
 ## Core Rule
 
 **Component → Store → API. Never skip layers.**
@@ -222,3 +232,27 @@ export const filteredStore = proxy({
 ```
 
 `setFilter` + `clearFilters` are synchronous; `applyFilters` is async and fires after each change. Components call `filteredStore.setFilter('search', query)` — never manipulate `filters` directly from a component.
+
+## Examples
+
+### An async store method with loading and error handling
+
+Source: `src/store/skills.ts::skillsStore.getSkillById`
+
+```ts
+  getSkillById: (id: string) => Promise<Skill>
+```
+
+## Common pitfalls
+
+| Symptom | Cause | Fix | Evidence |
+|---|---|---|---|
+| A list renders empty although the API returned rows | the endpoint wraps the array in `data` or a named key | read it with `extractArrayFromResponse(result, keys)` | `src/store/utils/parseApiResponse.ts::extractArrayFromResponse` |
+| A unit test sees no re-render after a store mutation | `setupTests.unit.ts` replaces `useSnapshot` with the raw store | assert on the store or write an integration test | `src/setupTests.unit.ts::useSnapshot` |
+
+## Quick reference
+
+| Task | Do | Where |
+|---|---|---|
+| Add a store | create `src/store/<domain>.ts` exporting `proxy<Type>({...})` | `src/store/skills.ts::skillsStore` |
+| Map a backend list item | add a transform in `src/store/utils/` | `src/store/utils/chats.ts::transformChatListItemDTO` |
