@@ -170,12 +170,12 @@ const onSubmit = async (data: AssistantData) => {
 
 ## Toast Notifications
 
-`src/utils/toaster.ts` — wraps `react-hot-toast`:
+`src/utils/toaster.ts` — wraps `toastify-js`; each method ignores empty text and also announces the text to screen readers (`src/utils/toaster.ts::toaster`):
 
 | Method | Duration | Position | Use for |
 |--------|----------|----------|---------|
 | `toaster.success(msg)` | 3000ms | top-right | Completed mutations |
-| `toaster.error(msg)` | 5000ms | top-right | Failures |
+| `toaster.error(msg)` | 10000ms | top-right | Failures |
 | `toaster.info(msg)` | 3000ms | top-right | Neutral status updates |
 
 Toasts are called from **stores only** (never from components). Components handle navigation/state transitions after success.

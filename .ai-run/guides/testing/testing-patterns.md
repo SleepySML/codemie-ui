@@ -303,7 +303,7 @@ local run; pass `--maxWorkers` on the command line instead.
 ### Read first
 | When you are | Exemplar | Why this one | Tests |
 |---|---|---|---|
-| driving a PrimeReact select, multi-select or autocomplete in a test | `src/test-utils/component-interactions/select.ts::openSelectDropdown` | opens the overlay the way a user does and returns the options | exemplar is a test |
+| driving a PrimeReact select, multi-select or autocomplete in a test | `src/test-utils/component-interactions/select.ts::openSelectDropdown` | opens the overlay the way a user does and returns the options | no covering test |
 
 ## Fixtures and factories
 
@@ -338,7 +338,12 @@ local run; pass `--maxWorkers` on the command line instead.
 Source: `src/test-utils/integration.tsx::mockAPI`
 
 ```ts
-export function mockAPI(method: Method, url: string, data: unknown, status?: number): void
+export function mockAPI(
+  method: Method,
+  url: string,
+  data: unknown,
+  params?: Record<string, unknown>
+): void
 ```
 
 ### Driving a select in a test
@@ -350,6 +355,16 @@ export async function openSelectDropdown(
   element: HTMLElement,
   user?: ReturnType<typeof userEvent.setup>
 ): Promise<void> {
+  const userInstance = user ?? userEvent.setup()
+
+  await userInstance.click(element)
+
+  // Wait for panel to appear
+  await waitFor(() => {
+    const panel = document.querySelector('.p-dropdown-panel')
+    if (!panel) throw new Error('Select panel did not open')
+  })
+}
 ```
 
 ## Common pitfalls

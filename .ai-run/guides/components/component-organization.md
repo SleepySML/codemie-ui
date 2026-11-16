@@ -1,6 +1,6 @@
 # Component Organization — Factory Guide
 
-React 18.3.1 / TypeScript 5.8.3
+React 19.2.8 / TypeScript 5.8.3
 
 ---
 
@@ -49,7 +49,9 @@ src/components/MyComponent/
 
 ```ts
 // src/components/Button/index.ts
-export { default } from './Button'
+import Button from './Button'
+
+export default Button
 export type { ButtonProps } from './Button'
 ```
 

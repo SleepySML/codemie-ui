@@ -76,7 +76,7 @@ All shared components live in `src/components/`. Import via `@/components/<Name>
 | `src/components/details/` | detail-page building blocks | `src/components/details/DetailsBadge.tsx::DetailsBadge` |
 | `src/components/form/` | form inputs, see the form patterns guide | `src/components/form/Input/Input.tsx::Input` |
 | `src/components/guardrails/` | guardrail assignment UI | `src/components/guardrails/GuardrailAssignmentPanel/GuardrailAssignmentPanel.tsx::GuardrailAssignmentPanel` |
-| `src/components/markdown/` | markdown renderer and its token components | `src/components/markdown/markdown.tsx::Markdown` |
+| `src/components/markdown/` | markdown renderer and its token components | `src/components/markdown/Markdown.tsx::Markdown` |
 | `src/components/sharing/` | share dialog and the sharing API client | `src/components/sharing/sharingClient.ts::createSharingClient` |
 | `src/components/subagents/` | built-in subagent catalog toggles | `src/components/subagents/BuiltinSubagentToggle.tsx::BuiltinSubagentCatalogItem` |
 
@@ -98,7 +98,7 @@ See `src/components/Popup/Popup.tsx::Dialog` — it imports Dialog; you never sh
 | Component | Purpose | Import path | Key props |
 |---|---|---|---|
 | `Layout` | App shell: sidebar + page area | `@/components/Layouts/Layout` | `children` |
-| `PageHeader` | Page title bar with action slot | `@/components/PageHeader` | `title`, `actions?: ReactNode` |
+| `PageHeader` | Page title bar with action slot | `@/components/PageHeader` | `headline?`, `headerActions?: ReactNode` |
 | `Sidebar` | Collapsible left nav | `@/components/Sidebar` | internal, used by Layout |
 | `SidebarNavigation` | Nav links inside sidebar | `@/components/SidebarNavigation` | internal |
 
@@ -183,7 +183,7 @@ import ConfirmationModal from '@/components/ConfirmationModal'
 | Component | Purpose | Import path | Key props |
 |---|---|---|---|
 | `Card` | Entity card (title, avatar, actions) | `@/components/Card` | `title`, `description`, `avatar`, `onClick`, `id`, `actions?`, `status?`, `label?` |
-| `Table` | Sortable data table | `@/components/Table` | `data`, `columns` |
+| `Table` | Sortable data table | `@/components/Table` | `items`, `columnDefinitions`, `customRenderColumns?`, `sort?`, `onSort?` |
 | `EmptyList` | Empty-state placeholder | `@/components/Table` (same dir, `EmptyList.tsx`) | `message` |
 | `Tabs` | Tab navigation + content | `@/components/Tabs` | `tabs`, `activeTab?`, `onChange?`, `isSmall?`, `headerContent?` |
 | `Pagination` | Page controls | `@/components/Pagination` | `currentPage`, `totalPages`, `setPage`, `perPage?` |
@@ -289,7 +289,7 @@ When in doubt about exact prop names or types, read the interface directly:
 | `UserFilter` | `src/components/UserFilter/UserFilter.tsx::UserFilterProps` |
 | `UserSelector` | `src/components/UserSelector/UserSelector.tsx::UserSelectorProps` |
 | `DetailsBadge` | `src/components/details/DetailsBadge.tsx::DetailsBadge` |
-| `Markdown` | `src/components/markdown/markdown.tsx::Markdown` |
+| `Markdown` | `src/components/markdown/Markdown.tsx::Markdown` |
 | `Layout` | `src/components/Layouts/Layout/Layout.tsx::Layout` |
 
 ---

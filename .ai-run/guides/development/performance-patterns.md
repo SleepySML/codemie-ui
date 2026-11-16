@@ -93,10 +93,11 @@ Prefer functional state updates (`c => c + 1`) over closures over state values â
 
 ## Lazy Loading
 
-### Route-level (always apply)
+### Route-level
+
+`src/router.tsx` imports every route page statically today; the only `lazy()` route split in `src/` is the Keycloak theme (`src/authentication/keycloak-theme/kc.gen.tsx::KcLoginPage`). Shape of a lazy route page:
 
 ```tsx
-// src/router.tsx
 const AssistantsPage = lazy(() => import('@/pages/assistants/AssistantsPage'))
 const WorkflowsPage  = lazy(() => import('@/pages/workflows/WorkflowsPage'))
 // Wrap each route element in <Suspense fallback={<Loading />}>

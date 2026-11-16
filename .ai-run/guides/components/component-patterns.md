@@ -1,6 +1,6 @@
 # Component Patterns — Factory Guide
 
-React 18.3.1 / TypeScript 5.8.3 / Tailwind CSS / PrimeReact 10.9.x
+React 19.2.8 / TypeScript 5.8.3 / Tailwind CSS / PrimeReact 10.9.x
 
 ---
 

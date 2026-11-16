@@ -50,17 +50,9 @@ src/utils/workflowEditor/         # All editor logic (outside pages/)
 
 ## Node & Edge Types
 
-| React Flow type string | Component | Backend state type |
-|------------------------|-----------|-------------------|
-| `aiNode` | `NodeTypes/AiNode.tsx` | `ai` |
-| `decisionNode` | `NodeTypes/DecisionNode.tsx` | `decision` |
-| `iteratorNode` | `NodeTypes/IteratorNode.tsx` | `iterator` |
-| `startNode` | `NodeTypes/StartNode.tsx` | `start` |
-| `endNode` | `NodeTypes/EndNode.tsx` | `end` |
+The React Flow `type` of a node is its `NodeTypes` value as is (`assistant`, `tool`, `sub_workflow`, `conditional`, …; `src/types/workflowEditor/base.ts::NodeTypes`), with no `Node` suffix. Register a new node component in `src/pages/workflows/editor/nodes/index.tsx::nodeTypeComponents`, which `WorkflowEditor` passes as `nodeTypes`.
 
-Node type string convention: `${backendType}Node`. Register all types in the `nodeTypes` map passed to `<ReactFlow nodeTypes={nodeTypes} />`.
-
-Custom node components receive `data: { state: WorkflowState }` and render UI only — they call action utilities for mutations.
+`buildNodes` leaves a node's `data` empty; `WorkflowEditor` merges its callbacks and execution status into `data`, and a node component reads its state with `data.findState(id)` (`src/pages/workflows/editor/nodes/ToolNode.tsx::ToolNode`) and renders UI only.
 
 ---
 
@@ -69,62 +61,35 @@ Custom node components receive `data: { state: WorkflowState }` and render UI on
 ### Store structure
 
 ```typescript
-// src/store/workflows.ts
-export const workflowsStore = proxy({
-  currentWorkflow: null as Workflow | null,
-  workflows: [] as Workflow[],
-  editorState: {
-    nodes: [] as Node[],
-    edges: [] as Edge[],
-    selectedNode: null as Node | null,
-  },
-})
+// src/hooks/useWorkflowEditor.ts
+  const [nodes, setNodes] = useState<WorkflowNode[]>(manager.nodes)
+  const [edges, setEdges] = useState<WorkflowEdge[]>(manager.edges)
 ```
 
-Keep `editorState` (React Flow format) separate from `currentWorkflow` (backend format). Never store React Flow nodes inside `currentWorkflow`.
+React Flow nodes and edges live in `useWorkflowEditor`'s component state, built from the YAML configuration it receives (`src/hooks/useWorkflowEditor.ts::useWorkflowEditor`); `workflowsStore` holds only the backend `currentWorkflow` (`src/store/workflows.ts::workflowsStore`). Never put React Flow nodes in a store.
 
 ### Load and save
 
-- `loadWorkflow(id)` — fetch from API, call `deserializeWorkflow()`, populate both `currentWorkflow` and `editorState`.
-- `saveWorkflow()` — call `serializeWorkflow(nodes, edges)`, PUT to API, update `currentWorkflow`.
+- Load: `workflowsStore.getWorkflow(id)` fetches the workflow; its YAML goes to `WorkflowEditor`, whose `useWorkflowEditor(yamlConfig, onConfigurationUpdate)` builds nodes and edges from it.
+- Save: the editor hands every change back as a YAML string through `onConfigurationUpdate`; `EditWorkflowPage` saves the form values with `workflowsStore.updateWorkflow(id, values, errorFormat)` (`src/store/workflows.ts::workflowsStore`).
 
 ### DO / DON'T
 
 | DON'T | DO |
 |-------|----|
-| Store React Flow nodes in `currentWorkflow` | Keep `editorState` separate |
+| Store React Flow nodes in `currentWorkflow` or any store | Keep them in `useWorkflowEditor` state, derived from the YAML configuration |
 | Call API directly from node components | Use store actions |
-| Mutate node `data` without updating `state` | Update both `state` and `node.data.state` |
 | Recalculate edges on every render | `useMemo(() => buildEdges(...), [workflow.states])` |
 
 ---
 
 ## Node Operations
 
-### Creating a node
+### State actions
 
-`src/utils/workflowEditor/actions/states/createState.ts`
+`src/utils/workflowEditor/actions/states/` exports `createStateAction`, `updateStateConfigurationAction`, `removeStateAction`, `duplicateStateAction`, `makeStateIterableAction` and `makeStateNonIterableAction`. Each takes the current `WorkflowConfiguration` and returns a new one as `{ config }` (`src/utils/workflowEditor/actions/index.ts::ActionResult`); none touches a store. `useWorkflowEditor`'s manager applies the result and rebuilds nodes and edges.
 
-- Generate a unique `stateId`.
-- Build `WorkflowState` (backend format) with `getDefaultConfig(type)`.
-- Build `Node` (React Flow format) with `type: '${type}Node'`, `position`, and `data: { state }`.
-- Push both to store: `workflowsStore.currentWorkflow.states` and `workflowsStore.editorState.nodes`.
-
-### Updating a node
-
-`src/utils/workflowEditor/actions/states/updateState.ts`
-
-- `Object.assign(state, updates)` on the backend state object.
-- Rebuild `node.data = { ...node.data, state }` — React Flow requires a new data reference to detect changes.
-
-### Deleting a node
-
-`src/utils/workflowEditor/actions/states/removeState.ts` — exports `removeStateAction`
-
-Always remove connected edges before removing the node:
-1. `getConnectedEdges(stateId)` → `deleteConnection(edge.id)` for each.
-2. Filter node from `editorState.nodes`.
-3. Filter state from `currentWorkflow.states`.
+`removeStateAction` returns the configuration unchanged for the start and end states, and drops assistants, tools and custom nodes no remaining state references (`src/utils/workflowEditor/actions/states/removeState.ts::removeStateAction`).
 
 ---
 
@@ -134,10 +99,7 @@ Always remove connected edges before removing the node:
 
 `src/utils/workflowEditor/actions/connections/createConnection.ts`
 
-1. Validate (see validation rules below) — show `toaster.error` and return `null` if invalid.
-2. Build `Edge` with `id: '${sourceId}-${targetId}'`, `source`, `target`, `sourceHandle`.
-3. Set `sourceState.transitions[sourceHandle || 'default'] = targetId`.
-4. Push edge to `editorState.edges`.
+`createConnectionAction(connection, config)` returns `{ config }` unchanged, with a console warning and no toast, when the source or target is missing or both ends are meta states other than END; otherwise it returns the configuration with the connection added (start, to-decision, from-decision or direct) (`src/utils/workflowEditor/actions/connections/createConnection.ts::createConnectionAction`).
 
 ### Connection validation rules
 
@@ -220,7 +182,7 @@ describe('createState', () => {
 })
 ```
 
-Test `validateConnection`, `serializeWorkflow`, `deserializeWorkflow`, and `autoLayout` as pure functions with no DOM dependency.
+Test `isValidConnection`, `serialize`, `deserialize` and `applyLayout` as pure functions with no DOM dependency.
 
 ## Examples
 
@@ -233,6 +195,22 @@ export const applyLayout = (
   nodes: WorkflowNode[],
   edges: WorkflowEdge[]
 ): WorkflowNode[] => {
+  if (nodes.length === 0) return nodes
+
+  const { iterators, childrenToLayout, topLevelToLayout } = categorizeNodes(nodes)
+  const nodesToLayout = [...topLevelToLayout, ...childrenToLayout]
+
+  // Layout all non-iterator nodes with dagre (children get absolute positions)
+  const layoutedNodes = layoutNodes(nodesToLayout, edges)
+
+  // For each iterator, fit it around its children and convert child positions to relative
+  const iteratorAdjustments = iterators.map(iterator => {
+    const children = layoutedNodes.filter(node => node.parentId === iterator.id)
+    return adjustIteratorToChildren(iterator, children)
+  })
+
+  const adjustedIterators = iteratorAdjustments.map(a => a.iterator)
+  const adjustedChildren = iteratorAdjustments.flatMap(a => a.children)
 ```
 
 ## Common pitfalls

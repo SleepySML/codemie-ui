@@ -76,7 +76,7 @@ These are siblings of the root route — they render without the main navigation
 ```
 src/router.tsx::workflowRoutes  loader: () => redirect('/workflows/my')
 ```
-`workflowRoutes` is the only route tree with a `loader`; the settings tree redirects with a `<Navigate to=… replace />` element instead (`src/router.tsx::settingsRoutes`).
+`applicationRoutes` redirects legacy paths (`/apps/:id/manage`, `/apps/:id/standalone`, `/applications`) with loaders too (`src/router.tsx::applicationRoutes`); the settings tree redirects with a `<Navigate to=… replace />` element instead (`src/router.tsx::settingsRoutes`).
 
 ---
 
@@ -224,7 +224,7 @@ through `FeatureGuard` on the route element.
 ## Code Splitting / Lazy Loading
 
 The router does **not** use `React.lazy` or `import(…)` for route components. All page
-components are statically imported at the top of `src/router.tsx` (lines 18-91). Bundle
+components are statically imported at the top of `src/router.tsx`. Bundle
 splitting is handled by Vite/Rollup at build time, not by runtime lazy loading in the router.
 
 ---
@@ -273,6 +273,19 @@ Source: `src/pages/workflows/utils/goBackWorkflows.ts::goBackWorkflows`
 export const goBackWorkflows = (
   defaultPath: string | (Partial<RouteOptions> & { name: string }) = WORKFLOWS_ALL
 ) => {
+  navigateBack(
+    defaultPath,
+    CHATS,
+    WORKFLOWS_ALL,
+    WORKFLOWS_MY,
+    WORKFLOWS_TEMPLATES,
+    FAVORITES,
+    FAVORITES_WORKFLOWS,
+    WORKFLOWS_MARKETPLACE,
+    VIEW_WORKFLOW,
+    VIEW_WORKFLOW_TEMPLATE
+  )
+}
 ```
 
 ## Common pitfalls
