@@ -67,6 +67,11 @@ All modals MUST use the `Popup` component from `src/components/Popup/`.
   Pass `busy={submitting}`; disable form fields and custom footer actions yourself.
 - `busyHint?: ReactNode` — reassurance text shown in the default footer after five seconds of being busy.
 
+### Read first
+| When you are | Exemplar | Why this one | Tests |
+|---|---|---|---|
+| saving from a Popup that must not be dismissed or submitted twice mid-request | `src/pages/settings/administration/components/projectsManagement/BulkBudgetOverrideModal.tsx::BulkBudgetOverrideModal` | `useInFlightGuard`'s `tryBegin` before the request and `end` in `finally`, `busy={inFlight}` on `Popup`, custom footer and a `fieldset` disabled while in flight | `src/pages/settings/administration/components/projectsManagement/__tests__/BulkBudgetOverrideModal.test.tsx::BulkBudgetOverrideModal` |
+
 ---
 
 ## Pattern 1 — Simple Modal (Default Footer)
@@ -257,13 +262,13 @@ export interface PopupProps {
   /** Selector hook for the cancel button. */
   cancelTestId?: string
   submitDisabled?: boolean
+  busy?: boolean
+  busyHint?: ReactNode
   overlayClassName?: string
   hideFooter?: boolean
   cancelText?: string
   bodyClassName?: string
   withBorder?: boolean
-  withBorderBottom?: boolean
-  hideClose?: boolean
 ```
 
 ## Common pitfalls

@@ -230,6 +230,13 @@ useEscapeKey(handleClose, visible)
 <div role='alert' aria-live='assertive'>{errorMessage}</div>
 ```
 
+### Constraints
+
+| Do not | Do instead | Why | Evidence |
+|---|---|---|---|
+| Mount a polite live region (`role="status"`, `aria-live="polite"`) in the same render as its first text, e.g. `{msg && <output aria-live="polite">{msg}</output>}` | Keep the region mounted and toggle only its content, as `Popup` does for `busyHint`, or send the text through `Announcement` | many screen readers skip text already present when a live region is inserted | `src/components/Popup/Popup.tsx::Popup` |
+| Do not copy `src/pages/applications/hosted/HostedApplicationForm.tsx::HostedApplicationForm` | Follow `Popup`'s busy hint: region mounted, content toggled | its `phase` `<output aria-live="polite">` mounts together with its first message | `src/pages/applications/hosted/HostedApplicationForm.tsx::HostedApplicationForm` |
+
 ### Visually Hidden Text
 
 Use Tailwind `sr-only` for text visible only to screen readers:

@@ -17,7 +17,7 @@ Reusable React logic lives in `src/hooks/` (`use<Name>.ts`), app-wide hooks moun
 | Modal has form logic + focus + ESC handling | `useXxxModal.ts` co-located with component |
 | Same pattern in 2+ components | Global hook in `src/hooks/` |
 | Debounced search / filter | Dedicated hook with cleanup |
-| Paginated data management | `usePagination` hook |
+| Paginated table or paginated dropdown options | `useTableFilters` (`src/hooks/useTableFilters.ts::useTableFilters`) or `usePaginatedOptions` (`src/hooks/usePaginatedOptions.ts::usePaginatedOptions`) |
 
 ---
 
@@ -25,7 +25,7 @@ Reusable React logic lives in `src/hooks/` (`use<Name>.ts`), app-wide hooks moun
 
 | Rule | Example |
 |------|---------|
-| Prefix with `use` | `useSearchFilter`, `useMarketplaceModal` |
+| Prefix with `use` | `useTableFilters`, `useFocusOnVisible` |
 | camelCase filename = function name | `useMyModal.ts` exports `useMyModal` |
 | Global / reusable | `src/hooks/useXxx.ts` |
 | Component-specific | `MyModal/useMyModal.ts` |
@@ -215,7 +215,6 @@ Each hook does one thing:
 | Good hook | Bad hook |
 |-----------|----------|
 | `useFocusOnVisible` — only focus | `useEverything` — focus + validation + keyboard + api |
-| `useSearchFilter` — only search | Combined search + pagination + sort in one hook |
 
 Split by concern; compose in the parent hook if needed.
 

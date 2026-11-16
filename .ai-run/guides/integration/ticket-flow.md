@@ -24,7 +24,8 @@ approval, the post-merge QA pipeline, and release tooling outside the SDLC
 factory. Add rows here if those stages start emitting matching events.
 
 **Why the invocation is a shell line here and a Skill invocation in `project.md`.**
-The `ticket-sync` hook runs in a sub-shell and cannot call the Skill tool, so this
-field carries the assistant's CLI form. `project.md` § Ticket Adapter is the
+No hook or script in this repository reads this file (`.claude/settings.json` registers one
+PostToolUse formatter hook), so the transitions above do not fire on their own. This field
+carries the CLI form `.claude/skills/codemie-jira-assistant/SKILL.md` runs. `project.md` § Ticket Adapter is the
 declaration agents read, and it stays Skill-only. The two must name the same
 adapter; change both together.

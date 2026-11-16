@@ -125,12 +125,12 @@ export const TIMEOUTS = {
 ```typescript
 // src/constants/featureFlags.ts
 export const FEATURE_FLAGS = {
-  ENABLE_MCP_SERVERS: true,
-  ENABLE_AI_REFINE: false,
+  MCP_CONNECT: 'mcpConnect',
+  WORKFLOW_AI: 'features:workflowAI',
 } as const
 ```
 
-Guard features with `if (FEATURE_FLAGS.ENABLE_MCP_SERVERS) { ... }` — never hardcode `true`/`false` inline.
+A flag value is the config key string, never a boolean: read it with `const [enabled, loaded] = useFeatureFlag(FEATURE_FLAGS.X)` (`src/hooks/useFeatureFlags.ts::useFeatureFlag`) — never hardcode `true`/`false` inline.
 
 ---
 

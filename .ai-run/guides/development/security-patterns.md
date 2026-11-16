@@ -89,6 +89,11 @@ The sender side, `src/pages/login-success/LoginSuccessPage.tsx`, passes
 `window.location.origin` as the `targetOrigin` argument. **Never pass `'*'`** — that broadcasts
 the message to whatever page happens to hold the opener reference.
 
+### Read first
+| When you are | Exemplar | Why this one | Tests |
+|---|---|---|---|
+| handling a message a hosted application posts through its container frame | `src/utils/hostedApplicationWindows.ts::createHostedWindowOpener` | acts only on payloads passing `isOpenRequest` / `isCloseRequest` and ignores the rest; opens a window only under an active user click and within `HOSTED_OPENS_PER_MINUTE` | `src/utils/__tests__/hostedApplicationWindows.test.ts::createHostedWindowOpener` |
+
 ## Browser configuration is public
 
 Configuration reaches the app by two paths, and **both are public**:
